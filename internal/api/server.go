@@ -3,6 +3,7 @@ package api
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,24 +11,42 @@ import (
 func StartServer() {
 	log.Println("Server start up")
 
-	r := gin.Default()
+	router := gin.Default()
 
-	r.LoadHTMLGlob("templates/*")
+	router.LoadHTMLGlob("templates/*")
 
-	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "base.tmpl", gin.H{
-			"title":    "some service",
-			"services": [][]string{{"k2", "hard", "image/evr.jpg"}, {"everest", "toze hard but less hard", "image/evr.jpg"}},
+	services := [][]string{{"0", "k2", "hard", "image/evr.jpg"}, {"1", "everest", "toze hard but less hard", "image/evr.jpg"}}
+
+	router.GET("/", func(context *gin.Context) {
+		context.HTML(http.StatusOK, "base.tmpl", gin.H{
+			"services": services,
 		})
-		c.HTML(http.StatusOK, "card_item.tmpl", gin.H{
-			"title":    "some service",
-			"services": [][]string{{"k2", "hard", "image/evr.jpg"}, {"everest", "toze hard but less hard", "image/evr.jpg"}},
+		context.HTML(http.StatusOK, "card_item.tmpl", gin.H{
+			"services": services,
 		})
 	})
 
-	r.Static("/image", "./resources")
+	router.GET("/service/:id", func(context *gin.Context) {
+		id, err := strconv.Atoi(context.Param("id"))
+		if err != nil {
+			context.AbortWithStatus(404)
+			return
+		}
 
-	err := r.Run()
+		if id >= len(services) || id < 0 {
+			context.AbortWithStatus(404)
+			return
+		}
+
+		context.HTML(http.StatusOK, "card.tmpl", gin.H{
+			"services": services,
+			"id":       id,
+		})
+	})
+
+	router.Static("/image", "./resources")
+
+	err := router.Run()
 	if err != nil {
 		log.Println("Error with running\nServer down")
 		return
