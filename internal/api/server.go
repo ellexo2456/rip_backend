@@ -15,8 +15,13 @@ func StartServer() {
 	r.LoadHTMLGlob("templates/*")
 
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "services.tmpl", gin.H{
-			"title": "some service",
+		c.HTML(http.StatusOK, "base.tmpl", gin.H{
+			"title":    "some service",
+			"services": [][]string{{"k2", "hard", "image/evr.jpg"}, {"everest", "toze hard but less hard", "image/evr.jpg"}},
+		})
+		c.HTML(http.StatusOK, "card_item.tmpl", gin.H{
+			"title":    "some service",
+			"services": [][]string{{"k2", "hard", "image/evr.jpg"}, {"everest", "toze hard but less hard", "image/evr.jpg"}},
 		})
 	})
 
