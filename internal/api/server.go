@@ -15,7 +15,10 @@ func StartServer() {
 
 	router.LoadHTMLGlob("templates/*")
 
-	services := [][]string{{"0", "k2", "hard", "image/evr.jpg"}, {"1", "everest", "toze hard but less hard", "image/evr.jpg"}}
+	services := [][]string{
+		{"0", "Райнхольд Андреас Месснер", "Италия", "17 сентября 1944 - нн (78 лет)", "image/rm.jpg"},
+		{"1", "Юзеф Е́жи «Юрек» Куку́чка", " Польша", "24 марта 1948 - 24 октября 1989 (41 год)", "image/evr.jpg"},
+	}
 
 	router.GET("/", func(context *gin.Context) {
 		context.HTML(http.StatusOK, "base.tmpl", gin.H{
@@ -44,7 +47,7 @@ func StartServer() {
 		})
 	})
 
-	router.Static("/image", "./resources")
+	router.Static("/image", "./static/images")
 
 	err := router.Run()
 	if err != nil {
