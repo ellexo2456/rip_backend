@@ -155,13 +155,13 @@
 </head>
 <body>
    <section>
-    <h1>Title</h1>
+    <h1>{{index .servicesVerbose 1}}</h1>
     <div class="img">
-    <a href="#"><img src="http://localhost:8080/image/kukuczkaBig.jpg"
+    <a href="#"><img src="{{index .servicesVerbose 3}}"
        alt="Пример"></a>
     </div>
     <div class="content">
-        {{index .services 1}}
+        {{index .servicesVerbose 2}}
     </div>
   </section>
 
