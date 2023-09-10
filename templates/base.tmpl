@@ -40,14 +40,6 @@
             max-width: 820px;
         }
 
-        .card--1 .card__img, .card--1 .card__img--hover {
-            background-image: url('image/evr.jpg');
-        }
-
-        .card--2 .card__img, .card--2 .card__img--hover {
-            background-image: url('image/k2.png');
-        }
-
         .card__like {
             width: 18px;
         }
@@ -101,6 +93,7 @@
 
         }
         .card {
+            display: none;
             margin-right: 25px;
             transition: all .4s cubic-bezier(0.175, 0.885, 0, 1);
             background-color: #fff;
@@ -163,16 +156,75 @@
         .card:hover .card__info-hover {
             opacity: 1;
         }
+
+        .show {
+            display: block;
+        }
     </style>
-
 </head>
-<body>
+<body onload="onload();">
 
-<section class="cards">
-    {{range .services}}
-        {{template "card_item" .}}
-    {{end}}
-</section>
+    <section class="cards">
+        {{range .services}}
+            {{template "card_item" .}}
+        {{end}}
+    </section>
+
+    <label for="filter">Фильтр:</label>
+
+    <input type="text" id="filter" name="name" required minlength="4" maxlength="8" size="10" />
+
+    <button id="button" type="button">filter</button>
+
+    <script>
+            filterSelection("all")
+            function filterSelection(c) {
+                var x, i;
+                x = document.getElementsByClassName("card");
+                if (c == "all") c = "";
+                var a, j, t
+                for (i = 0; i < x.length; i++) {
+                    w3RemoveClass(x[i], "show");
+                    a = x[i].getElementsByClassName("card__category")
+                    for (j = 0; j < a.length; j++) {
+                        t = a[j].textContent
+                        if (t === c || c == "") {
+                            w3AddClass(x[i], "show");
+                        }
+                    }
+                }
+            }
+
+            function w3AddClass(element, name) {
+                var i, arr1, arr2;
+                arr1 = element.className.split(" ");
+                arr2 = name.split(" ");
+                for (i = 0; i < arr2.length; i++) {
+                    if (arr1.indexOf(arr2[i]) == -1) {element.className += " " + arr2[i];}
+                }
+            }
+
+            function w3RemoveClass(element, name) {
+                var i, arr1, arr2;
+                arr1 = element.className.split(" ");
+                arr2 = name.split(" ");
+                for (i = 0; i < arr2.length; i++) {
+                    while (arr1.indexOf(arr2[i]) > -1) {
+                        arr1.splice(arr1.indexOf(arr2[i]), 1);
+                    }
+                }
+                element.className = arr1.join(" ");
+            }
+
+            function onload() {
+                const btn = document.getElementById("button");
+                btn.addEventListener("click", function() {
+                    const input = document.getElementById("filter");
+                    const filter = input.value
+                    filterSelection(filter)
+                })
+            }
+    </script>
 
 </body>
 </html>
