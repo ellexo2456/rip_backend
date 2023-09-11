@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Альпинисты</title>
 
     <style>
         @import url('https://fonts.googleapis.com/css?family=Roboto+Slab:100,300,400,700');
@@ -11,6 +11,11 @@
 
         *{
             box-sizing: border-box;
+        }
+
+        :root {
+            --green: #1ECD97;
+            --gray: #bbbbbb;
         }
 
         body, html {
@@ -160,9 +165,117 @@
         .show {
             display: block;
         }
+
+        .container {
+            justify-content: center;
+            align-items: center;
+            display: inline-flex;
+            font-family: 'Roboto Slab', sans-serif;
+            top: 50%;
+            left: 50%;
+            margin-left: -65px;
+            margin-top: -20px;
+            width: 350px;
+            height: 45px;
+            text-align: center;
+
+           font-size: 13px;
+           letter-spacing: 1px;
+           font-weight: 500;
+           color: #868686;
+        }
+
+        button {
+            outline: none;
+            vertical-align: middle;
+            height: 80%;
+            text-align: center;
+            width: 60%;
+            border-radius: 3px;
+            border: none;
+            background: #3400fa;
+            color: #D2DBDD;
+            /*border: 2px solid #868686;*/
+            /*color: #bbbbbb;*/
+            /*letter-spacing: 1px;*/
+            /*text-shadow: 0;*/
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            margin-left: -15px;
+            box-shadow: -2px 12px 5px -5px rgba(0, 0, 0,0.1);
+        }
+
+        #filter {
+            border-radius: 3px;
+            height: 100%;
+            width: 400px;
+            border: none;
+            box-shadow: 0px 8px 7px -8px rgba(0, 0, 0,0.1);
+        }
+
+        .container label {
+            vertical-align: middle;
+        }
+
+        button:hover {
+            color: white;
+            background: rgba(44, 76, 210, 0.99);
+        }
+
+        button:active {
+            letter-spacing: 2px;
+        }
+
+        button:after {
+            content: "выполнить";
+        }
+
+        /*.onclic {*/
+        /*    width: 40px;*/
+        /*    border-color: var(--gray);*/
+        /*    border-width: 3px;*/
+        /*    font-size: 0;*/
+        /*    border-left-color: var(--green);*/
+        /*    animation: rotating 2s 0.25s linear infinite;*/
+        /*}*/
+
+        /*.onclic:hover {*/
+        /*    color: var(--green);*/
+        /*    background: white;*/
+        /*}*/
+
+        /*.validate {*/
+        /*    font-size: 13px;*/
+        /*    color: white;*/
+        /*    background: var(--green);*/
+        /*}*/
+
+        /*.validate:after {*/
+        /*    font-family: 'FontAwesome';*/
+        /*    content: "\f00c";*/
+        /*}*/
+
+        /*@keyframes rotating {*/
+        /*    from {*/
+        /*        transform: rotate(0deg);*/
+        /*    }*/
+        /*    to {*/
+        /*        transform: rotate(360deg);*/
+        /*    }*/
+        /*}*/
+
     </style>
 </head>
 <body onload="onload();">
+    <div class="container">
+        <!--        <label for="filter">Фильтр:</label>-->
+        <input type="text" id="filter" name="name" required minlength="4" maxlength="50" size="10" />
+
+        <button id="button" type="button">
+        </button>
+    </div>
 
     <section class="cards">
         {{range .services}}
@@ -170,33 +283,28 @@
         {{end}}
     </section>
 
-    <label for="filter">Фильтр:</label>
-
-    <input type="text" id="filter" name="name" required minlength="4" maxlength="8" size="10" />
-
-    <button id="button" type="button">filter</button>
-
     <script>
             filterSelection("all")
             function filterSelection(c) {
-                var x, i;
+                let x, i;
                 x = document.getElementsByClassName("card");
-                if (c == "all") c = "";
-                var a, j, t
+                if (c === "all")
+                    c = "";
+                let a, j, t
                 for (i = 0; i < x.length; i++) {
-                    w3RemoveClass(x[i], "show");
+                    RemoveClass(x[i], "show");
                     a = x[i].getElementsByClassName("card__category")
                     for (j = 0; j < a.length; j++) {
                         t = a[j].textContent
                         if (t === c || c == "") {
-                            w3AddClass(x[i], "show");
+                            AddClass(x[i], "show");
                         }
                     }
                 }
             }
 
-            function w3AddClass(element, name) {
-                var i, arr1, arr2;
+            function AddClass(element, name) {
+                let i, arr1, arr2;
                 arr1 = element.className.split(" ");
                 arr2 = name.split(" ");
                 for (i = 0; i < arr2.length; i++) {
@@ -204,8 +312,8 @@
                 }
             }
 
-            function w3RemoveClass(element, name) {
-                var i, arr1, arr2;
+            function RemoveClass(element, name) {
+                let i, arr1, arr2;
                 arr1 = element.className.split(" ");
                 arr2 = name.split(" ");
                 for (i = 0; i < arr2.length; i++) {
@@ -229,3 +337,4 @@
 </body>
 </html>
 {{end}}
+
