@@ -9,13 +9,8 @@
         @import url('https://fonts.googleapis.com/css?family=Roboto+Slab:100,300,400,700');
         @import url('https://fonts.googleapis.com/css?family=Raleway:300,300i,400,400i,500,500i,600,600i,700,700i,800,800i,900,900i');
 
-        *{
+        * {
             box-sizing: border-box;
-        }
-
-        :root {
-            --green: #1ECD97;
-            --gray: #bbbbbb;
         }
 
         body, html {
@@ -27,22 +22,35 @@
         }
 
         body {
+            grid-template-rows: 3fr 5.5fr 3fr;
+            grid-template-columns: 1fr;
+            grid-template-areas:
+              'container'
+              'cards'
+              '.';
             background-color: #D2DBDD;
-            display: flex;
-            display: -webkit-flex;
-            -webkit-justify-content: center;
-            -webkit-align-items: center;
-            justify-content: center;
+            display: grid;
+            /*display: -webkit-flex;*/
+            /*flex-direction: column;*/
+            /*-webkit-justify-content: center;*/
+            /*-webkit-align-items: center;*/
+            /*justify-content: center;*/
             align-items: center;
+
+        .card {
+            flex: 0 0 auto;
+        }
+
         }
 
         .cards {
-            width: 100%;
             display: flex;
-            display: -webkit-flex;
-            justify-content: center;
-            -webkit-justify-content: center;
-            max-width: 820px;
+            max-width: 100%;
+            margin: 30px 30px;
+            padding-left: 10px;
+            overflow-x: auto;
+            height: 111%;
+
         }
 
         .card__like {
@@ -54,6 +62,7 @@
             vertical-align: middle;
             fill: #AD7D52;
         }
+
         .card__time {
             font-size: 12px;
             color: #AD7D52;
@@ -97,6 +106,7 @@
             top: 0;
 
         }
+
         .card {
             display: none;
             margin-right: 25px;
@@ -106,10 +116,13 @@
             position: relative;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0px 13px 10px -7px rgba(0, 0, 0,0.1);
+            box-shadow: 0px 13px 10px -7px rgba(0, 0, 0, 0.1);
+            max-width: 250px;
+            height: 90%;
         }
+
         .card:hover {
-            box-shadow: 0px 30px 18px -8px rgba(0, 0, 0,0.1);
+            box-shadow: 0px 30px 18px -8px rgba(0, 0, 0, 0.1);
             transform: scale(1.10, 1.10);
         }
 
@@ -167,33 +180,36 @@
         }
 
         .container {
-            justify-content: center;
+            padding-left: 10px;
+            margin-left: 30px;
+            justify-content: start;
             align-items: center;
-            display: inline-flex;
+            display: flex;
             font-family: 'Roboto Slab', sans-serif;
-            top: 50%;
-            left: 50%;
-            margin-left: -65px;
-            margin-top: -20px;
+            /*top: 50%;*/
+            /*left: 50%;*/
+            /*margin-left: -65px;*/
+            /*margin-top: -20px;*/
             width: 350px;
             height: 45px;
             text-align: center;
 
-           font-size: 13px;
-           letter-spacing: 1px;
-           font-weight: 500;
-           color: #868686;
+            font-size: 13px;
+            letter-spacing: 1px;
+            font-weight: 500;
+            color: #868686;
+            /*padding-right: 60px;*/
         }
 
         button {
             outline: none;
             vertical-align: middle;
-            height: 80%;
+            height: 90%;
             text-align: center;
             width: 60%;
             border-radius: 3px;
             border: none;
-            background: #3400fa;
+            background: #ea4c89;
             color: #D2DBDD;
             /*border: 2px solid #868686;*/
             /*color: #bbbbbb;*/
@@ -203,16 +219,17 @@
             font-weight: bold;
             cursor: pointer;
             transition: all 0.25s ease;
-            margin-left: -15px;
-            box-shadow: -2px 12px 5px -5px rgba(0, 0, 0,0.1);
+            margin-left: 10px;
+            box-shadow: -2px 12px 5px -5px rgba(0, 0, 0, 0.1);
         }
 
         #filter {
+            padding-left: 5px;
             border-radius: 3px;
             height: 100%;
             width: 400px;
             border: none;
-            box-shadow: 0px 8px 7px -8px rgba(0, 0, 0,0.1);
+            box-shadow: 0px 8px 7px -8px rgba(0, 0, 0, 0.1);
         }
 
         .container label {
@@ -221,7 +238,7 @@
 
         button:hover {
             color: white;
-            background: rgba(44, 76, 210, 0.99);
+            background: #f55b93;
         }
 
         button:active {
@@ -266,73 +283,81 @@
         /*    }*/
         /*}*/
 
+        .form {
+            height: 100%;
+        }
+
     </style>
 </head>
 <body onload="onload();">
-    <div class="container">
-        <!--        <label for="filter">Фильтр:</label>-->
-        <input type="text" id="filter" name="name" required minlength="4" maxlength="50" size="10" />
+<div class="container">
+    <!--        <label for="filter">Фильтр:</label>-->
 
-        <button id="button" type="button">
-        </button>
-    </div>
+    <form action="/filter" method="GET" class="form">
+        <input type="text" id="filter" name="name" size="10" required placeholder="Введите страну..." maxlength="50"/>
+    </form>
+    <button id="button" type="button"></button>
+</div>
 
-    <section class="cards">
-        {{range .services}}
-            {{template "card_item" .}}
-        {{end}}
-    </section>
+<section class="cards scrolling-wrapper">
+    {{range .services}}
+    {{template "card_item" .}}
+    {{end}}
+</section>
 
-    <script>
-            filterSelection("all")
-            function filterSelection(c) {
-                let x, i;
-                x = document.getElementsByClassName("card");
-                if (c === "all")
-                    c = "";
-                let a, j, t
-                for (i = 0; i < x.length; i++) {
-                    RemoveClass(x[i], "show");
-                    a = x[i].getElementsByClassName("card__category")
-                    for (j = 0; j < a.length; j++) {
-                        t = a[j].textContent
-                        if (t === c || c == "") {
-                            AddClass(x[i], "show");
-                        }
-                    }
+<script>
+    filterSelection("all")
+
+    function filterSelection(c) {
+        let x, i;
+        x = document.getElementsByClassName("card");
+        if (c === "all")
+            c = "";
+        let a, j, t
+        for (i = 0; i < x.length; i++) {
+            RemoveClass(x[i], "show");
+            a = x[i].getElementsByClassName("card__category")
+            for (j = 0; j < a.length; j++) {
+                t = a[j].textContent
+                if (t === c || c == "") {
+                    AddClass(x[i], "show");
                 }
             }
+        }
+    }
 
-            function AddClass(element, name) {
-                let i, arr1, arr2;
-                arr1 = element.className.split(" ");
-                arr2 = name.split(" ");
-                for (i = 0; i < arr2.length; i++) {
-                    if (arr1.indexOf(arr2[i]) == -1) {element.className += " " + arr2[i];}
-                }
+    function AddClass(element, name) {
+        let i, arr1, arr2;
+        arr1 = element.className.split(" ");
+        arr2 = name.split(" ");
+        for (i = 0; i < arr2.length; i++) {
+            if (arr1.indexOf(arr2[i]) == -1) {
+                element.className += " " + arr2[i];
             }
+        }
+    }
 
-            function RemoveClass(element, name) {
-                let i, arr1, arr2;
-                arr1 = element.className.split(" ");
-                arr2 = name.split(" ");
-                for (i = 0; i < arr2.length; i++) {
-                    while (arr1.indexOf(arr2[i]) > -1) {
-                        arr1.splice(arr1.indexOf(arr2[i]), 1);
-                    }
-                }
-                element.className = arr1.join(" ");
+    function RemoveClass(element, name) {
+        let i, arr1, arr2;
+        arr1 = element.className.split(" ");
+        arr2 = name.split(" ");
+        for (i = 0; i < arr2.length; i++) {
+            while (arr1.indexOf(arr2[i]) > -1) {
+                arr1.splice(arr1.indexOf(arr2[i]), 1);
             }
+        }
+        element.className = arr1.join(" ");
+    }
 
-            function onload() {
-                const btn = document.getElementById("button");
-                btn.addEventListener("click", function() {
-                    const input = document.getElementById("filter");
-                    const filter = input.value
-                    filterSelection(filter)
-                })
-            }
-    </script>
+    function onload() {
+        const btn = document.getElementById("button");
+        btn.addEventListener("click", function () {
+            const input = document.getElementById("filter");
+            const filter = input.value
+            filterSelection(filter)
+        })
+    }
+</script>
 
 </body>
 </html>
