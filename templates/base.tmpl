@@ -108,7 +108,6 @@
         }
 
         .card {
-            display: none;
             margin-right: 25px;
             transition: all .4s cubic-bezier(0.175, 0.885, 0, 1);
             background-color: #fff;
@@ -308,55 +307,55 @@
 <script>
     filterSelection("all")
 
-    function filterSelection(c) {
-        let x, i;
-        x = document.getElementsByClassName("card");
-        if (c === "all")
-            c = "";
-        let a, j, t
-        for (i = 0; i < x.length; i++) {
-            RemoveClass(x[i], "show");
-            a = x[i].getElementsByClassName("card__category")
-            for (j = 0; j < a.length; j++) {
-                t = a[j].textContent
-                if (t === c || c == "") {
-                    AddClass(x[i], "show");
-                }
-            }
-        }
-    }
-
-    function AddClass(element, name) {
-        let i, arr1, arr2;
-        arr1 = element.className.split(" ");
-        arr2 = name.split(" ");
-        for (i = 0; i < arr2.length; i++) {
-            if (arr1.indexOf(arr2[i]) == -1) {
-                element.className += " " + arr2[i];
-            }
-        }
-    }
-
-    function RemoveClass(element, name) {
-        let i, arr1, arr2;
-        arr1 = element.className.split(" ");
-        arr2 = name.split(" ");
-        for (i = 0; i < arr2.length; i++) {
-            while (arr1.indexOf(arr2[i]) > -1) {
-                arr1.splice(arr1.indexOf(arr2[i]), 1);
-            }
-        }
-        element.className = arr1.join(" ");
-    }
-
-    function onload() {
-        const btn = document.getElementById("button");
-        btn.addEventListener("click", function () {
-            const input = document.getElementById("filter");
-            const filter = input.value
-            filterSelection(filter)
-        })
-    }
+    // function filterSelection(c) {
+    //     let x, i;
+    //     x = document.getElementsByClassName("card");
+    //     if (c === "all")
+    //         c = "";
+    //     let a, j, t
+    //     for (i = 0; i < x.length; i++) {
+    //         RemoveClass(x[i], "show");
+    //         a = x[i].getElementsByClassName("card__category")
+    //         for (j = 0; j < a.length; j++) {
+    //             t = a[j].textContent
+    //             if (t === c || c == "") {
+    //                 AddClass(x[i], "show");
+    //             }
+    //         }
+    //     }
+    // }
+    //
+    // function AddClass(element, name) {
+    //     let i, arr1, arr2;
+    //     arr1 = element.className.split(" ");
+    //     arr2 = name.split(" ");
+    //     for (i = 0; i < arr2.length; i++) {
+    //         if (arr1.indexOf(arr2[i]) == -1) {
+    //             element.className += " " + arr2[i];
+    //         }
+    //     }
+    // }
+    //
+    // function RemoveClass(element, name) {
+    //     let i, arr1, arr2;
+    //     arr1 = element.className.split(" ");
+    //     arr2 = name.split(" ");
+    //     for (i = 0; i < arr2.length; i++) {
+    //         while (arr1.indexOf(arr2[i]) > -1) {
+    //             arr1.splice(arr1.indexOf(arr2[i]), 1);
+    //         }
+    //     }
+    //     element.className = arr1.join(" ");
+    // }
+    //
+    // function onload() {
+    //     const btn = document.getElementById("button");
+    //     btn.addEventListener("click", function () {
+    //         const input = document.getElementById("filter");
+    //         const filter = input.value
+    //         filterSelection(filter)
+    //     })
+    // }
 </script>
 
 </body>

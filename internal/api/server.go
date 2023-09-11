@@ -1,11 +1,13 @@
 package api
 
+import "C"
 import (
 	"github.com/gin-gonic/gin"
 	"html/template"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func StartServer() {
@@ -111,19 +113,22 @@ func StartServer() {
 		})
 	})
 
-	//router.GET("/filter", func(c *gin.Context) {
-	//	searchQuery := c.DefaultQuery("q", "")
-	//	var foundPlanets []Planet
-	//	for _, planet := range planets {
-	//		if strings.HasPrefix(strings.ToLower(planet.Name), strings.ToLower(searchQuery)) {
-	//			foundPlanets = append(foundPlanets, planet)
-	//		}
-	//	}
-	//	data := gin.H{
-	//		"planets": foundPlanets,
-	//	}
-	//	c.HTML(http.StatusOK, "mainPage.tmpl", data)
-	//})
+	router.GET("/filter", func(context *gin.Context) {
+		searchQuery := context.DefaultQuery("name", "")
+		var foundAlpinists [][]string
+		for _, alpinist := range services {
+			if strings.HasPrefix(strings.ToLower(alpinist[2]), strings.ToLower(searchQuery)) {
+				foundAlpinists = append(foundAlpinists, alpinist)
+			}
+		}
+
+		context.HTML(http.StatusOK, "base.tmpl", gin.H{
+			"services": foundAlpinists,
+		})
+		context.HTML(http.StatusOK, "card_item.tmpl", gin.H{
+			"services": foundAlpinists,
+		})
+	})
 
 	router.Static("/image", "./static/images")
 
