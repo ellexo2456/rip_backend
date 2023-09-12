@@ -27,7 +27,7 @@ type User struct {
 type Alpinist struct {
 	ID          uint `gorm:"primarykey;autoIncrement"`
 	Name        string
-	Age         int
+	Lifetime    string
 	Country     string
 	ImageRef    string
 	Description string
