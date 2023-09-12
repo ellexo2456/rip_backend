@@ -95,6 +95,18 @@ func (a *Application) StartServer() {
 		})
 	})
 
+	router.GET("/t", func(context *gin.Context) {
+		alps, err := a.repository.GetAllAlpinists()
+		if err != nil {
+			context.AbortWithStatus(404)
+			return
+		}
+
+		context.HTML(http.StatusOK, "base.tmpl", gin.H{
+			"services": alps,
+		})
+	})
+
 	router.GET("/service/:id", func(context *gin.Context) {
 		id, err := strconv.Atoi(context.Param("id"))
 		if err != nil {

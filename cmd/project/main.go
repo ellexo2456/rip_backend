@@ -7,6 +7,13 @@ import (
 
 func main() {
 	log.Println("App Start")
-	app.StartServer()
+
+	application, err := app.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	application.StartServer()
+
 	log.Println("App term")
 }
