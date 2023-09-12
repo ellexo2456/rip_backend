@@ -3,10 +3,15 @@ package app
 import "C"
 import (
 	"RIpPeakBack/internal/app/ds"
+	"RIpPeakBack/internal/app/dsn"
+	"database/sql"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func (a *Application) StartServer() {
@@ -85,7 +90,7 @@ func (a *Application) StartServer() {
 	//		"Польша",
 	//	},
 	//}
-	alpinists, err := a.repository.GetAllAlpinists()
+	alpinists, err := a.repository.GetActiveAlpinists()
 	if err != nil {
 		log.Println("Error with running\nServer down")
 		return
@@ -99,18 +104,6 @@ func (a *Application) StartServer() {
 			"alpinists": *alpinists,
 		})
 	})
-
-	//router.GET("/t", func(context *gin.Context) {
-	//	alps, err := a.repository.FilterByCountry("Польша")
-	//	if err != nil {
-	//		context.AbortWithStatus(404)
-	//		return
-	//	}
-	//
-	//	context.HTML(http.StatusOK, "base.tmpl", gin.H{
-	//		"services": alps,
-	//	})
-	//})
 
 	router.GET("/service/:id", func(context *gin.Context) {
 		id, err := strconv.Atoi(context.Param("id"))
@@ -126,6 +119,7 @@ func (a *Application) StartServer() {
 
 		if len(*alpinists) == 0 {
 			context.AbortWithStatus(404)
+			return
 		}
 
 		var alpinist ds.Alpinist
@@ -147,22 +141,73 @@ func (a *Application) StartServer() {
 		})
 	})
 
-	//router.GET("/filter", func(context *gin.Context) {
-	//	searchQuery := context.DefaultQuery("name", "")
-	//	var foundAlpinists [][]string
-	//	for _, alpinist := range *alpinists {
-	//		if strings.HasPrefix(strings.ToLower(alpinist[2]), strings.ToLower(searchQuery)) {
-	//			foundAlpinists = append(foundAlpinists, alpinist)
-	//		}
-	//	}
-	//
-	//	context.HTML(http.StatusOK, "base.tmpl", gin.H{
-	//		"services": foundAlpinists,
-	//	})
-	//	context.HTML(http.StatusOK, "card_item.tmpl", gin.H{
-	//		"services": foundAlpinists,
-	//	})
-	//})
+	router.GET("/filter", func(context *gin.Context) {
+		searchQuery := context.DefaultQuery("name", "")
+
+		var foundAlpinists []ds.Alpinist
+		for _, alpinist := range *alpinists {
+			if strings.HasPrefix(strings.ToLower(alpinist.Country), strings.ToLower(searchQuery)) {
+				foundAlpinists = append(foundAlpinists, alpinist)
+			}
+		}
+
+		context.HTML(http.StatusOK, "base.tmpl", gin.H{
+			"alpinists": foundAlpinists,
+		})
+		context.HTML(http.StatusOK, "card_item.tmpl", gin.H{
+			"alpinists": foundAlpinists,
+		})
+	})
+
+	router.GET("/service/delete", func(context *gin.Context) {
+		id, err := strconv.Atoi(context.DefaultQuery("name", ""))
+		if err != nil {
+			context.AbortWithStatus(404)
+			return
+		}
+
+		if id < 0 {
+			context.AbortWithStatus(404)
+			return
+		}
+
+		if len(*alpinists) == 0 {
+			context.AbortWithStatus(404)
+			return
+		}
+
+		var activeAlpinists []ds.Alpinist
+		var alpinistToDelete ds.Alpinist
+
+		for _, alpinist := range *alpinists {
+			if alpinist.ID != uint(id) {
+				activeAlpinists = append(activeAlpinists, alpinist)
+			} else {
+				alpinistToDelete = alpinist
+			}
+		}
+
+		var db *sql.DB
+		_ = godotenv.Load()
+		db, err = sql.Open("postgres", dsn.FromEnv())
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+		_, err = db.Exec("UPDATE alpinists SET status = $1 WHERE id = $2", "удалён", alpinistToDelete.ID)
+		if err != nil {
+			context.AbortWithStatus(500)
+			return
+		}
+
+		context.HTML(http.StatusOK, "base.tmpl", gin.H{
+			"alpinists": activeAlpinists,
+		})
+		context.HTML(http.StatusOK, "card_item.tmpl", gin.H{
+			"alpinists": activeAlpinists,
+		})
+	})
 
 	router.Static("/image", "./static/images")
 
@@ -174,53 +219,3 @@ func (a *Application) StartServer() {
 
 	log.Println("Server down")
 }
-
-//func (a *Application) StartServer() {
-//	log.Println("Server start up")
-//
-//	r := gin.Default()
-//
-//	r.GET("/ping", func(c *gin.Context) {
-//		id := c.Query("id") // получаем из запроса query string
-//
-//		if id != "" {
-//			log.Printf("id recived %s\n", id)
-//			intID, err := strconv.Atoi(id) // пытаемся привести это к чиселке
-//			if err != nil {                // если не получилось
-//				log.Printf("cant convert id %v", err)
-//				c.Error(err)
-//				return
-//			}
-//
-//			product, err := a.repo.GetProductByID(uint(intID))
-//			if err != nil { // если не получилось
-//				log.Printf("cant get product by id %v", err)
-//				c.Error(err)
-//				return
-//			}
-//
-//			c.JSON(http.StatusOK, gin.H{
-//				"product_price": product.Price,
-//			})
-//			return
-//		}
-//		c.JSON(http.StatusOK, gin.H{
-//			"message": "pong",
-//		})
-//	})
-//
-//	r.LoadHTMLGlob("templates/*")
-//
-//	r.GET("/test", func(c *gin.Context) {
-//		c.HTML(http.StatusOK, "test.tmpl", gin.H{
-//			"title": "Main website",
-//			"test":  []string{"a", "b"},
-//		})
-//	})
-//
-//	r.Static("/image", "./resources")
-//
-//	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
-//
-//	log.Println("Server down")
-//}

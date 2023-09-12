@@ -32,9 +32,9 @@ func (repository *Repository) GetAlpinistByID(id int) (*ds.Alpinist, error) {
 	return alpinist, nil
 }
 
-func (repository *Repository) GetAllAlpinists() (*[]ds.Alpinist, error) {
+func (repository *Repository) GetActiveAlpinists() (*[]ds.Alpinist, error) {
 	alpinists := &[]ds.Alpinist{}
-	err := repository.db.Find(alpinists).Error
+	err := repository.db.Find(alpinists, "status = ?", "действует").Error
 	if err != nil {
 		return nil, err
 	}

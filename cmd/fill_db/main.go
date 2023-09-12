@@ -4,6 +4,7 @@ import (
 	"RIpPeakBack/internal/app/ds"
 	"RIpPeakBack/internal/app/dsn"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
