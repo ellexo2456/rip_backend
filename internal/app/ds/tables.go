@@ -30,6 +30,7 @@ type Alpinist struct {
 	Lifetime    string
 	Country     string
 	ImageRef    string
+	BigImageRef string
 	Description string
 	Status      string
 	Expeditions []Expedition `gorm:"many2many:alpinist_expedition"`

@@ -156,18 +156,18 @@
 </head>
 <body>
    <section>
-    <h1>{{index .servicesVerbose 1}}</h1>
+    <h1>{{.alpinist.Name}}</h1>
     <div class="img">
-    <a href="#"><img src="{{index .servicesVerbose 3}}"
-       alt="Пример"></a>
+    <a href="#"><img src="{{.alpinist.BigImageRef}}"
+       alt="Img"></a>
     </div>
     <div class="content">
-        {{index .servicesVerbose 2}}
+        {{.alpinist.Description}}
     </div>
   </section>
 
   <div class="attribution">
-        {{index .servicesVerbose 4}}
+        {{.alpinist.Country}}
   </div>
 
 </body>
