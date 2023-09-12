@@ -32,8 +32,8 @@ func (repository *Repository) GetAlpinistByID(id int) (*ds.Alpinist, error) {
 	return alpinist, nil
 }
 
-func (repository *Repository) GetAllAlpinists() ([]*ds.Alpinist, error) {
-	var alpinists []*ds.Alpinist
+func (repository *Repository) GetAllAlpinists() (*[]ds.Alpinist, error) {
+	alpinists := &[]ds.Alpinist{}
 	err := repository.db.Find(alpinists).Error
 	if err != nil {
 		return nil, err
@@ -42,8 +42,8 @@ func (repository *Repository) GetAllAlpinists() ([]*ds.Alpinist, error) {
 	return alpinists, nil
 }
 
-func (repository *Repository) FilterByCountry(country string) ([]*ds.Alpinist, error) {
-	var alpinists []*ds.Alpinist
+func (repository *Repository) FilterByCountry(country string) (*[]ds.Alpinist, error) {
+	alpinists := &[]ds.Alpinist{}
 	err := repository.db.Find(alpinists, "country = ?", country).Error
 	if err != nil {
 		return nil, err

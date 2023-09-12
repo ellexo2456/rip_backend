@@ -96,7 +96,7 @@ func (a *Application) StartServer() {
 	})
 
 	router.GET("/t", func(context *gin.Context) {
-		alps, err := a.repository.GetAllAlpinists()
+		alps, err := a.repository.FilterByCountry("Польша")
 		if err != nil {
 			context.AbortWithStatus(404)
 			return
