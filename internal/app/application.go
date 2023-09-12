@@ -1,10 +1,11 @@
 package app
 
+import (
+	"RIpPeakBack/internal/app/repository"
+)
+
 type Application struct {
-}
-
-func (app Application) Run() {
-
+	repository *repository.Repository
 }
 
 func New() Application {

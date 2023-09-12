@@ -1,12 +1,12 @@
 package main
 
 import (
-	"RIpPeakBack/internal/api"
+	"RIpPeakBack/internal/app"
 	"log"
 )
 
 func main() {
 	log.Println("App Start")
-	api.StartServer()
+	app.StartServer()
 	log.Println("App term")
 }
