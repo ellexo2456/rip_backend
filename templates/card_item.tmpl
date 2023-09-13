@@ -2,7 +2,6 @@
 
 {{define "card_item"}}
 
-
 <article class="card card--1">
 <!--    <div class="card__info-hover">-->
 <!--        <div class="card__clock-info">-->
@@ -13,7 +12,7 @@
 <!--        </div>-->
 <!--    </div>-->
     <div class="card__img" style="background-image: url('{{.ImageRef}}');"></div>
-    <a href="/service/{{.ID}}" class="card_link">
+    <a href="/alpinist/{{.ID}}" class="card_link">
         <div class="card__img--hover" style="background-image: url('{{.ImageRef}}');"></div>
     </a>
     <div class="card__info">
@@ -22,7 +21,7 @@
         <span class="card__by"><a href="#" class="card__author" title="author">{{.Lifetime}}</a></span>
     </div>
 </article>
-<form action="/service/delete" method="GET">
+<form action="/alpinist/delete" method="GET">
     <button name="name" value="{{.ID}}"></button>
 </form>
 {{end}}

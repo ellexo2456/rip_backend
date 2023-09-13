@@ -51,3 +51,12 @@ func (repository *Repository) FilterByCountry(country string) (*[]ds.Alpinist, e
 
 	return alpinists, nil
 }
+
+func (repository *Repository) AddExpedition(expedition ds.Expedition) error {
+	result := repository.db.Create(&expedition)
+
+	if err := result.Error; err != nil {
+		return err
+	}
+	return nil
+}
