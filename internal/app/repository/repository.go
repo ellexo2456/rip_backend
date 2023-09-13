@@ -60,3 +60,12 @@ func (repository *Repository) AddExpedition(expedition ds.Expedition) error {
 	}
 	return nil
 }
+
+func (repository *Repository) UpdateExpedition(expedition ds.Expedition) error {
+	result := repository.db.Save(&expedition)
+
+	if err := result.Error; err != nil {
+		return err
+	}
+	return nil
+}

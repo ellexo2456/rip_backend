@@ -142,49 +142,41 @@ func (a *Application) StartServer() {
 	})
 
 	router.POST("/expedition", func(c *gin.Context) {
-		var expedition = ds.Expedition{}
-
-		if err := c.ShouldBindJSON(&expedition); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
+		expedition, errMessage, code := getExpedition(c, a)
+		if expedition == nil {
+			c.JSON(code, gin.H{
 				"status":  "fail",
-				"message": "invalid request body",
+				"message": errMessage,
 			})
 			return
 		}
 
-		query := c.DefaultQuery("ids", "")
-		var ids []int
-		if ids, err = toIntArray(query); err != nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"status":  "fail",
-				"message": "invalid query parameters (ids)",
-			})
-			return
-		}
-
-		for _, alpinistId := range ids {
-			if alpinistId < 0 {
-				c.JSON(http.StatusNotFound, gin.H{
-					"status":  "fail",
-					"message": "negative id",
-				})
-				return
-			}
-
-			if alp, err := a.repository.GetAlpinistByID(alpinistId); err != nil {
-				c.JSON(http.StatusNotFound, gin.H{
-					"status":  "fail",
-					"message": "id is out of range",
-				})
-			} else {
-				expedition.Alpinists = append(expedition.Alpinists, *alp)
-			}
-		}
-
-		if err = a.repository.AddExpedition(expedition); err != nil {
+		if err = a.repository.AddExpedition(*expedition); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  "fail",
 				"message": "can`t post expedition into db",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, expedition)
+		return
+	})
+
+	router.PUT("/expedition/", func(c *gin.Context) {
+		expedition, errMessage, code := getExpedition(c, a)
+		if expedition == nil {
+			c.JSON(code, gin.H{
+				"status":  "fail",
+				"message": errMessage,
+			})
+			return
+		}
+
+		if err = a.repository.UpdateExpedition(*expedition); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  "fail",
+				"message": "can`t update expedition in db",
 			})
 			return
 		}
@@ -202,6 +194,36 @@ func (a *Application) StartServer() {
 	} // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
 	log.Println("Server down")
+}
+
+func getExpedition(c *gin.Context, a *Application) (*ds.Expedition, string, int) {
+	var expedition = ds.Expedition{}
+
+	var err error
+	if err = c.ShouldBindJSON(&expedition); err != nil {
+		return nil, "invalid request body", http.StatusBadRequest
+	}
+
+	query := c.DefaultQuery("ids", "")
+	var ids []int
+	if ids, err = toIntArray(query); err != nil {
+		return nil, "invalid query parameters (ids)", http.StatusNotFound
+	}
+
+	for _, alpinistId := range ids {
+		if alpinistId < 0 {
+			return nil, "negative id", http.StatusNotFound
+		}
+
+		if alp, err := a.repository.GetAlpinistByID(alpinistId); err != nil {
+			return nil, "id is out of range", http.StatusNotFound
+
+		} else {
+			expedition.Alpinists = append(expedition.Alpinists, *alp)
+		}
+	}
+
+	return &expedition, "", 0
 }
 
 func toIntArray(str string) ([]int, error) {
