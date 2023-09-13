@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func (a *Application) StartServer() {
@@ -39,17 +40,18 @@ func (a *Application) StartServer() {
 	router.GET("/alpinist/:id", func(c *gin.Context) {
 		id, err := strconv.Atoi(c.Param("id"))
 		if err != nil {
-			c.AbortWithStatus(404)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  "fail",
+				"message": "invalid parameter id",
+			})
 			return
 		}
 
 		if id < 0 {
-			c.AbortWithStatus(404)
-			return
-		}
-
-		if len(*alpinists) == 0 {
-			c.AbortWithStatus(404)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  "fail",
+				"message": "negative parameter id",
+			})
 			return
 		}
 
@@ -64,7 +66,10 @@ func (a *Application) StartServer() {
 		}
 
 		if flag {
-			c.AbortWithStatus(404)
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  "fail",
+				"message": "id is out of rage",
+			})
 			return
 		}
 
@@ -151,7 +156,9 @@ func (a *Application) StartServer() {
 			return
 		}
 
-		if err = a.repository.AddExpedition(*expedition); err != nil {
+		expedition.CreatedAt = time.Now()
+
+		if expedition.ID, err = a.repository.AddExpedition(*expedition); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  "fail",
 				"message": "can`t post expedition into db",
@@ -207,12 +214,12 @@ func getExpedition(c *gin.Context, a *Application) (*ds.Expedition, string, int)
 	query := c.DefaultQuery("ids", "")
 	var ids []int
 	if ids, err = toIntArray(query); err != nil {
-		return nil, "invalid query parameters (ids)", http.StatusNotFound
+		return nil, "invalid query parameters (ids)", http.StatusBadRequest
 	}
 
 	for _, alpinistId := range ids {
 		if alpinistId < 0 {
-			return nil, "negative id", http.StatusNotFound
+			return nil, "negative id", http.StatusBadRequest
 		}
 
 		if alp, err := a.repository.GetAlpinistByID(alpinistId); err != nil {
