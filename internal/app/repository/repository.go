@@ -91,8 +91,8 @@ func (repository *Repository) FilterByStatus(status string) (*[]ds.Expedition, e
 	return expedition, nil
 }
 
-func (repository *Repository) UpdateStatus(status string) error {
-	result := repository.db.Where("status = ?", status).Update("status", status)
+func (repository *Repository) UpdateStatus(status string, id uint) error {
+	result := repository.db.Where("status = ? && id = ?", status, id).Update("status", status)
 
 	if err := result.Error; err != nil {
 		return err
