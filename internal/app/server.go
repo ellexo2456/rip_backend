@@ -96,20 +96,21 @@ func (a *Application) StartServer() {
 		})
 	})
 
-	router.GET("/alpinist/delete", func(context *gin.Context) {
-		id, err := strconv.Atoi(context.DefaultQuery("name", ""))
+	router.GET("/alpinist/delete", func(c *gin.Context) {
+		id, err := strconv.Atoi(c.DefaultQuery("name", ""))
 		if err != nil {
-			context.AbortWithStatus(404)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  "fail",
+				"message": "invalid parameter id",
+			})
 			return
 		}
 
 		if id < 0 {
-			context.AbortWithStatus(404)
-			return
-		}
-
-		if len(*alpinists) == 0 {
-			context.AbortWithStatus(404)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  "fail",
+				"message": "negative parameter id",
+			})
 			return
 		}
 
@@ -128,20 +129,27 @@ func (a *Application) StartServer() {
 		_ = godotenv.Load()
 		db, err = sql.Open("postgres", dsn.FromEnv())
 		if err != nil {
-			log.Fatal(err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  "fail",
+				"message": "can`t open db connection",
+			})
+			return
 		}
 		defer db.Close()
 
 		_, err = db.Exec("UPDATE alpinists SET status = $1 WHERE id = $2", "удалён", alpinistToDelete.ID)
 		if err != nil {
-			context.AbortWithStatus(500)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  "fail",
+				"message": "can`t delete alpinist in db",
+			})
 			return
 		}
 
-		context.HTML(http.StatusOK, "base.tmpl", gin.H{
+		c.HTML(http.StatusOK, "base.tmpl", gin.H{
 			"alpinists": activeAlpinists,
 		})
-		context.HTML(http.StatusOK, "card_item.tmpl", gin.H{
+		c.HTML(http.StatusOK, "card_item.tmpl", gin.H{
 			"alpinists": activeAlpinists,
 		})
 	})
@@ -170,7 +178,7 @@ func (a *Application) StartServer() {
 		return
 	})
 
-	router.PUT("/expedition/", func(c *gin.Context) {
+	router.PUT("/expedition", func(c *gin.Context) {
 		expedition, errMessage, code := getExpedition(c, a)
 		if expedition == nil {
 			c.JSON(code, gin.H{
@@ -179,6 +187,19 @@ func (a *Application) StartServer() {
 			})
 			return
 		}
+		dbExpedition, err := a.repository.GetExpeditionById(expedition.ID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  "fail",
+				"message": "can`t found expedition with such id",
+			})
+			return
+		}
+
+		expedition.Status = dbExpedition.Status
+		expedition.CreatedAt = dbExpedition.CreatedAt
+		expedition.FormedAt = dbExpedition.FormedAt
+		expedition.ClosedAt = dbExpedition.ClosedAt
 
 		if err = a.repository.UpdateExpedition(*expedition); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -192,6 +213,35 @@ func (a *Application) StartServer() {
 		return
 	})
 
+	router.PUT("/expedition/status/user", func(c *gin.Context) {
+		changeStatus(c, a, checkUserStatus)
+	})
+
+	router.PUT("/expedition/status/moderator", func(c *gin.Context) {
+		changeStatus(c, a, checkModeratorStatus)
+	})
+
+	router.GET("/expedition/filter", func(c *gin.Context) {
+		searchQuery := c.DefaultQuery("name", "")
+
+		foundExpeditions, err := a.repository.FilterByStatus(searchQuery)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  "fail",
+				"message": "error with db",
+			})
+			return
+		}
+
+		// заменить на шаблоны с заявками
+		c.HTML(http.StatusOK, "base.tmpl", gin.H{
+			"alpinists": foundExpeditions,
+		})
+		c.HTML(http.StatusOK, "card_item.tmpl", gin.H{
+			"alpinists": foundExpeditions,
+		})
+	})
+
 	router.Static("/image", "./static/images")
 
 	err = router.Run()
@@ -201,6 +251,51 @@ func (a *Application) StartServer() {
 	} // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
 	log.Println("Server down")
+}
+
+func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool) {
+	var expedition ds.Expedition
+
+	if err := c.ShouldBindJSON(&expedition); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "ivalid status",
+		})
+		return
+	}
+
+	if !checkStatus(expedition.Status) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "ivalid status",
+		})
+		return
+	}
+
+	if err := a.repository.UpdateStatus(expedition.Status); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": "can`t update status in db",
+		})
+		return
+	}
+
+	c.Status(http.StatusOK)
+	return
+}
+
+func checkUserStatus(status string) bool {
+	if status != "введён" && status != "в работе" {
+		return false
+	}
+	return true
+}
+
+func checkModeratorStatus(status string) bool {
+	if status != "завершён" && status != "удалён" && status != "отменён" {
+		return false
+	}
+	return true
 }
 
 func getExpedition(c *gin.Context, a *Application) (*ds.Expedition, string, int) {

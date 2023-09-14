@@ -61,8 +61,38 @@ func (repository *Repository) AddExpedition(expedition ds.Expedition) (uint, err
 	return expedition.ID, nil
 }
 
+func (repository *Repository) GetExpeditionById(id uint) (*ds.Expedition, error) {
+	expedition := &ds.Expedition{}
+
+	err := repository.db.First(expedition, "id = ?", "1").Error // find expedition with code D42
+	if err != nil {
+		return nil, err
+	}
+
+	return expedition, nil
+}
+
 func (repository *Repository) UpdateExpedition(expedition ds.Expedition) error {
 	result := repository.db.Save(&expedition)
+
+	if err := result.Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repository *Repository) FilterByStatus(status string) (*[]ds.Expedition, error) {
+	expedition := &[]ds.Expedition{}
+	err := repository.db.Find(expedition, "status = ?", status).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return expedition, nil
+}
+
+func (repository *Repository) UpdateStatus(status string) error {
+	result := repository.db.Where("status = ?", status).Update("status", status)
 
 	if err := result.Error; err != nil {
 		return err
