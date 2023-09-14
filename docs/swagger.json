@@ -1,0 +1,427 @@
+{
+    "schemes": [
+        "Zhttp"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "rip course project about alpinists and their expeditions",
+        "title": "RIpPeakBack",
+        "contact": {
+            "name": "Alex Chinaev",
+            "url": "https://vk.com/l.chinaev",
+            "email": "ax.chinaev@yandex.ru"
+        },
+        "license": {
+            "name": "AS IS (NO WARRANTY)"
+        },
+        "version": "1.0"
+    },
+    "host": "127.0.0.1",
+    "basePath": "/",
+    "paths": {
+        "/": {
+            "get": {
+                "description": "load alpinists from db and returns the main page with them as a context",
+                "produces": [
+                    "text/html"
+                ],
+                "tags": [
+                    "alpinists"
+                ],
+                "summary": "returns the main page",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ds.Alpinist"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "can`t get the alpinists list",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/alpinist/delete/{id}": {
+            "get": {
+                "description": "deletes an alpinist by a given id and returns the page without it",
+                "produces": [
+                    "text/html"
+                ],
+                "tags": [
+                    "alpinists"
+                ],
+                "summary": "deletes an alpinist",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "alpinists id",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ds.Alpinist"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "negative parameter id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "can`t delete alpinist in db",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/alpinist/filter/{name}": {
+            "get": {
+                "description": "returns the page with an alpinists that had been filtered by a country",
+                "produces": [
+                    "text/html"
+                ],
+                "tags": [
+                    "alpinists"
+                ],
+                "summary": "returns the page with a filtered alpinists",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "country name",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ds.Alpinist"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "can`t get the alpinists list",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/alpinist/{id}": {
+            "get": {
+                "description": "returns the page of the alpinist by the provided id",
+                "produces": [
+                    "text/html"
+                ],
+                "tags": [
+                    "alpinists"
+                ],
+                "summary": "returns the page of the alpinist",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id os alpinist",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ds.Alpinist"
+                        }
+                    },
+                    "400": {
+                        "description": "negative parameter id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "id is out of rage",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "can`t get the alpinists list",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/expedition": {
+            "put": {
+                "description": "changes an expedition information fields that can be changed by a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "expeditions"
+                ],
+                "summary": "changes an expedition",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ds.Expedition"
+                        }
+                    },
+                    "400": {
+                        "description": "negative id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "id is out of range",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "can`t post expedition into db",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "creates expedition and adds an alpinist to",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "alpinists",
+                    "expeditions"
+                ],
+                "summary": "adds an alpinist to expedition",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ds.Expedition"
+                        }
+                    },
+                    "400": {
+                        "description": "negative id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "id is out of range",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "can`t post expedition into db",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/expedition/filter/{name}": {
+            "get": {
+                "description": "returns the page with an expeditions that had been filtered by a status",
+                "produces": [
+                    "text/html"
+                ],
+                "tags": [
+                    "expeditions"
+                ],
+                "summary": "returns the page with a filtered expeditions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "new status of the expedition",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/ds.Expedition"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error with db",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/expedition/status/moderator": {
+            "put": {
+                "description": "changes an expedition status with that one witch can be changed by a moderator",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "expeditions"
+                ],
+                "summary": "changes an expedition status",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "invalid status",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "can`t update status in db",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/expedition/status/user": {
+            "put": {
+                "description": "changes an expedition status with that one witch can be changed by a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "expeditions"
+                ],
+                "summary": "changes an expedition status",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "invalid status",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "can`t update status in db",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "ds.Alpinist": {
+            "type": "object",
+            "properties": {
+                "bigImageRef": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "expeditions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ds.Expedition"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "imageRef": {
+                    "type": "string"
+                },
+                "lifetime": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "ds.Expedition": {
+            "type": "object",
+            "properties": {
+                "alpinists": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ds.Alpinist"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "integer"
+                },
+                "year": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}

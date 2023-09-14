@@ -1,0 +1,289 @@
+basePath: /
+definitions:
+  ds.Alpinist:
+    properties:
+      bigImageRef:
+        type: string
+      country:
+        type: string
+      description:
+        type: string
+      expeditions:
+        items:
+          $ref: '#/definitions/ds.Expedition'
+        type: array
+      id:
+        type: integer
+      imageRef:
+        type: string
+      lifetime:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+  ds.Expedition:
+    properties:
+      alpinists:
+        items:
+          $ref: '#/definitions/ds.Alpinist'
+        type: array
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      start_date:
+        type: string
+      status:
+        type: string
+      userID:
+        type: integer
+      year:
+        type: integer
+    type: object
+host: 127.0.0.1
+info:
+  contact:
+    email: ax.chinaev@yandex.ru
+    name: Alex Chinaev
+    url: https://vk.com/l.chinaev
+  description: rip course project about alpinists and their expeditions
+  license:
+    name: AS IS (NO WARRANTY)
+  title: RIpPeakBack
+  version: "1.0"
+paths:
+  /:
+    get:
+      description: load alpinists from db and returns the main page with them as a
+        context
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ds.Alpinist'
+            type: array
+        "500":
+          description: can`t get the alpinists list
+          schema:
+            type: string
+      summary: returns the main page
+      tags:
+      - alpinists
+  /alpinist/{id}:
+    get:
+      description: returns the page of the alpinist by the provided id
+      parameters:
+      - description: id os alpinist
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.Alpinist'
+        "400":
+          description: negative parameter id
+          schema:
+            type: string
+        "404":
+          description: id is out of rage
+          schema:
+            type: string
+        "500":
+          description: can`t get the alpinists list
+          schema:
+            type: string
+      summary: returns the page of the alpinist
+      tags:
+      - alpinists
+  /alpinist/delete/{id}:
+    get:
+      description: deletes an alpinist by a given id and returns the page without
+        it
+      parameters:
+      - description: alpinists id
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ds.Alpinist'
+            type: array
+        "400":
+          description: negative parameter id
+          schema:
+            type: string
+        "500":
+          description: can`t delete alpinist in db
+          schema:
+            type: string
+      summary: deletes an alpinist
+      tags:
+      - alpinists
+  /alpinist/filter/{name}:
+    get:
+      description: returns the page with an alpinists that had been filtered by a
+        country
+      parameters:
+      - description: country name
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ds.Alpinist'
+            type: array
+        "500":
+          description: can`t get the alpinists list
+          schema:
+            type: string
+      summary: returns the page with a filtered alpinists
+      tags:
+      - alpinists
+  /expedition:
+    post:
+      consumes:
+      - application/json
+      description: creates expedition and adds an alpinist to
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.Expedition'
+        "400":
+          description: negative id
+          schema:
+            type: string
+        "404":
+          description: id is out of range
+          schema:
+            type: string
+        "500":
+          description: can`t post expedition into db
+          schema:
+            type: string
+      summary: adds an alpinist to expedition
+      tags:
+      - alpinists
+      - expeditions
+    put:
+      consumes:
+      - application/json
+      description: changes an expedition information fields that can be changed by
+        a user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ds.Expedition'
+        "400":
+          description: negative id
+          schema:
+            type: string
+        "404":
+          description: id is out of range
+          schema:
+            type: string
+        "500":
+          description: can`t post expedition into db
+          schema:
+            type: string
+      summary: changes an expedition
+      tags:
+      - expeditions
+  /expedition/filter/{name}:
+    get:
+      description: returns the page with an expeditions that had been filtered by
+        a status
+      parameters:
+      - description: new status of the expedition
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ds.Expedition'
+            type: array
+        "500":
+          description: error with db
+          schema:
+            type: string
+      summary: returns the page with a filtered expeditions
+      tags:
+      - expeditions
+  /expedition/status/moderator:
+    put:
+      consumes:
+      - application/json
+      description: changes an expedition status with that one witch can be changed
+        by a moderator
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: invalid status
+          schema:
+            type: string
+        "500":
+          description: can`t update status in db
+          schema:
+            type: string
+      summary: changes an expedition status
+      tags:
+      - expeditions
+  /expedition/status/user:
+    put:
+      consumes:
+      - application/json
+      description: changes an expedition status with that one witch can be changed
+        by a user
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: invalid status
+          schema:
+            type: string
+        "500":
+          description: can`t update status in db
+          schema:
+            type: string
+      summary: changes an expedition status
+      tags:
+      - expeditions
+schemes:
+- Zhttp
+swagger: "2.0"
