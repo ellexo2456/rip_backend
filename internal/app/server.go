@@ -272,6 +272,13 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool)
 		return
 	}
 
+	if expedition.Status == "завершён" {
+		expedition.FormedAt = time.Now()
+	}
+	if expedition.Status == "удалён" {
+		expedition.ClosedAt = time.Now()
+	}
+
 	if err := a.repository.UpdateStatus(expedition.Status); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "fail",
