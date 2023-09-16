@@ -206,13 +206,22 @@ func (a *Application) deleteAlpinist(c *gin.Context) {
 
 	var activeAlpinists []ds.Alpinist
 	var alpinistToDelete ds.Alpinist
-
+	var flag bool
 	for _, alpinist := range *alpinists {
 		if alpinist.ID != uint(id) {
 			activeAlpinists = append(activeAlpinists, alpinist)
 		} else {
 			alpinistToDelete = alpinist
+			flag = true
 		}
+	}
+
+	if !flag {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status":  "fail",
+			"message": "id is out of range",
+		})
+		return
 	}
 
 	var db *sql.DB
@@ -333,11 +342,15 @@ func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
 // @Summary      changes an expedition status
 // @Description  changes an expedition status with that one witch can be changed by a user
 // @Tags         expeditions
+// @Param        id query uint true "expedition id"
 // @Accept       json
-// @Success      200
+// @Success      204
 // @Failure      400  {string} string "invalid status"
+// @Failure      400  {string} string "invalid query parameters (ids)"
+// @Failure      400  {string} string "negative id"
+// @Failure      404  {string} string "id is out of range"
 // @Failure      500  {string} string "can`t update status in db"
-// @Router       /expedition/status/user [put]
+// @Router       /expedition/status/user/{id} [put]
 func (a *Application) changeExpeditionUserStatus(c *gin.Context) {
 	changeStatus(c, a, checkUserStatus)
 }
@@ -346,11 +359,15 @@ func (a *Application) changeExpeditionUserStatus(c *gin.Context) {
 // @Summary      changes an expedition status
 // @Description  changes an expedition status with that one witch can be changed by a moderator
 // @Tags         expeditions
+// @Param        id query uint true "expedition id"
 // @Accept       json
-// @Success      200
+// @Success      204
 // @Failure      400  {string} string "invalid status"
+// @Failure      400  {string} string "invalid query parameters (ids)"
+// @Failure      400  {string} string "negative id"
+// @Failure      404  {string} string "id is out of range"
 // @Failure      500  {string} string "can`t update status in db"
-// @Router       /expedition/status/moderator [put]
+// @Router       /expedition/status/moderator/{id} [put]
 func (a *Application) changeExpeditionModeratorStatus(c *gin.Context) {
 	changeStatus(c, a, checkModeratorStatus)
 }
@@ -377,12 +394,7 @@ func (a *Application) filterExpeditionsByStatus(c *gin.Context) {
 	}
 
 	// заменить на шаблоны с заявками
-	c.HTML(http.StatusOK, "base.tmpl", gin.H{
-		"alpinists": foundExpeditions,
-	})
-	c.HTML(http.StatusOK, "card_item.tmpl", gin.H{
-		"alpinists": foundExpeditions,
-	})
+	c.JSON(http.StatusOK, foundExpeditions)
 }
 
 func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool) {
@@ -411,6 +423,32 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool)
 		expedition.ClosedAt = time.Now()
 	}
 
+	id, err := strconv.Atoi(c.DefaultQuery("id", ""))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid parameter id",
+		})
+		return
+	}
+
+	if id < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "negative parameter id",
+		})
+		return
+	}
+
+	expedition.ID = uint(id)
+	if _, err := a.repository.GetExpeditionById(expedition.ID); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status":  "fail",
+			"message": "id is out of range",
+		})
+		return
+	}
+
 	if err := a.repository.UpdateStatus(expedition.Status, expedition.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "fail",
@@ -419,7 +457,7 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool)
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.Status(http.StatusNoContent)
 	return
 }
 
@@ -458,7 +496,6 @@ func getExpedition(c *gin.Context, a *Application) (*ds.Expedition, string, int)
 
 		if alp, err := a.repository.GetAlpinistByID(alpinistId); err != nil {
 			return nil, "id is out of range", http.StatusNotFound
-
 		} else {
 			expedition.Alpinists = append(expedition.Alpinists, *alp)
 		}

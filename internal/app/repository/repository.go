@@ -24,7 +24,7 @@ func New(dsn string) (*Repository, error) {
 func (repository *Repository) GetAlpinistByID(id int) (*ds.Alpinist, error) {
 	alpinist := &ds.Alpinist{}
 
-	err := repository.db.First(alpinist, "id = ?", "1").Error // find alpinist with code D42
+	err := repository.db.First(alpinist, "id = ?", id).Error // find alpinist with code D42
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (repository *Repository) AddExpedition(expedition ds.Expedition) (uint, err
 func (repository *Repository) GetExpeditionById(id uint) (*ds.Expedition, error) {
 	expedition := &ds.Expedition{}
 
-	err := repository.db.First(expedition, "id = ?", "1").Error // find expedition with code D42
+	err := repository.db.First(expedition, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (repository *Repository) FilterByStatus(status string) (*[]ds.Expedition, e
 }
 
 func (repository *Repository) UpdateStatus(status string, id uint) error {
-	result := repository.db.Where("status = ? && id = ?", status, id).Update("status", status)
+	result := repository.db.Table("expeditions").Where("id = ?", id).Update("status", status)
 
 	if err := result.Error; err != nil {
 		return err

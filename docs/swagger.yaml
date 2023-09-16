@@ -244,17 +244,27 @@ paths:
       summary: returns the page with a filtered expeditions
       tags:
       - expeditions
-  /expedition/status/moderator:
+  /expedition/status/moderator/{id}:
     put:
       consumes:
       - application/json
       description: changes an expedition status with that one witch can be changed
         by a moderator
+      parameters:
+      - description: expedition id
+        in: query
+        name: id
+        required: true
+        type: integer
       responses:
-        "200":
-          description: OK
+        "204":
+          description: No Content
         "400":
-          description: invalid status
+          description: negative id
+          schema:
+            type: string
+        "404":
+          description: id is out of range
           schema:
             type: string
         "500":
@@ -264,17 +274,27 @@ paths:
       summary: changes an expedition status
       tags:
       - expeditions
-  /expedition/status/user:
+  /expedition/status/user/{id}:
     put:
       consumes:
       - application/json
       description: changes an expedition status with that one witch can be changed
         by a user
+      parameters:
+      - description: expedition id
+        in: query
+        name: id
+        required: true
+        type: integer
       responses:
-        "200":
-          description: OK
+        "204":
+          description: No Content
         "400":
-          description: invalid status
+          description: negative id
+          schema:
+            type: string
+        "404":
+          description: id is out of range
           schema:
             type: string
         "500":

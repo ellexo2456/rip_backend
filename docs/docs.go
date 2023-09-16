@@ -299,7 +299,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/expedition/status/moderator": {
+        "/expedition/status/moderator/{id}": {
             "put": {
                 "description": "changes an expedition status with that one witch can be changed by a moderator",
                 "consumes": [
@@ -309,12 +309,27 @@ const docTemplate = `{
                     "expeditions"
                 ],
                 "summary": "changes an expedition status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "expedition id",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
-                    "200": {
-                        "description": "OK"
+                    "204": {
+                        "description": "No Content"
                     },
                     "400": {
-                        "description": "invalid status",
+                        "description": "negative id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "id is out of range",
                         "schema": {
                             "type": "string"
                         }
@@ -328,7 +343,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/expedition/status/user": {
+        "/expedition/status/user/{id}": {
             "put": {
                 "description": "changes an expedition status with that one witch can be changed by a user",
                 "consumes": [
@@ -338,12 +353,27 @@ const docTemplate = `{
                     "expeditions"
                 ],
                 "summary": "changes an expedition status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "expedition id",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
-                    "200": {
-                        "description": "OK"
+                    "204": {
+                        "description": "No Content"
                     },
                     "400": {
-                        "description": "invalid status",
+                        "description": "negative id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "id is out of range",
                         "schema": {
                             "type": "string"
                         }
