@@ -3,36 +3,37 @@ package ds
 import "time"
 
 type Expedition struct {
-	ID        uint `gorm:"primarykey;autoIncrement"`
-	Name      string
-	Year      int
-	Status    string
-	CreatedAt time.Time `json:"start_date"`
-	FormedAt  time.Time `json:"start_date"`
-	ClosedAt  time.Time `json:"start_date"`
-	UserID    uint
+	ID          uint   `gorm:"primarykey;autoIncrement"`
+	Name        string `gorm:"type:varchar(90)"`
+	Year        int
+	Status      string    `gorm:"type:varchar(90)"`
+	CreatedAt   time.Time `json:"start_date"`
+	FormedAt    time.Time `json:"start_date"`
+	ClosedAt    time.Time `json:"start_date"`
+	UserID      uint
+	ModeratorID uint
 	//Users     []User
 	Alpinists []Alpinist `gorm:"many2many:alpinist_expedition"`
 }
 
 type User struct {
-	ID          uint `gorm:"primarykey;autoIncrement"`
-	Login       string
-	Password    string
-	ImageRef    string
-	Expeditions []Expedition
+	ID          uint         `gorm:"primarykey;autoIncrement"`
+	Login       string       `gorm:"type:varchar(90); unique"`
+	Password    string       `gorm:"type:varchar(90)"`
+	ImageRef    string       `gorm:"type:varchar(90)"`
+	Expeditions []Expedition `gorm:"foreignkey:UserID;foreignkey:ModeratorID;"`
 	//ExpeditionID uint
 }
 
 type Alpinist struct {
-	ID          uint `gorm:"primarykey;autoIncrement"`
-	Name        string
-	Lifetime    string
-	Country     string
-	ImageRef    string
-	BigImageRef string
+	ID          uint   `gorm:"primarykey;autoIncrement"`
+	Name        string `gorm:"type:varchar(90)"`
+	Lifetime    string `gorm:"type:varchar(90)"`
+	Country     string `gorm:"type:varchar(90)"`
+	ImageRef    string `gorm:"type:varchar(90)"`
+	BigImageRef string `gorm:"type:varchar(90)"`
 	Description string
-	Status      string
+	Status      string       `gorm:"type:varchar(90)"`
 	Expeditions []Expedition `gorm:"many2many:alpinist_expedition"`
 }
 
