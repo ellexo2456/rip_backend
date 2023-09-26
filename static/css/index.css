@@ -197,6 +197,7 @@ button {
     border: none;
     background: #ea4c89;
     color: #D2DBDD;
+    overflow-wrap: break-word;
     /*border: 2px solid #868686;*/
     /*color: #bbbbbb;*/
     /*letter-spacing: 1px;*/
