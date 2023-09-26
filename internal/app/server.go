@@ -21,21 +21,6 @@ func (a *Application) StartServer() {
 
 	router.LoadHTMLGlob("templates/*")
 
-	router.GET("/", func(context *gin.Context) {
-		alpinists, err := a.repository.GetActiveAlpinists()
-		if err != nil {
-			log.Println("Error with running\nServer down")
-			return
-		}
-
-		context.HTML(http.StatusOK, "base.tmpl", gin.H{
-			"alpinists": *alpinists,
-		})
-		context.HTML(http.StatusOK, "card_item.tmpl", gin.H{
-			"alpinists": *alpinists,
-		})
-	})
-
 	router.GET("/service/:id", func(context *gin.Context) {
 		alpinists, err := a.repository.GetActiveAlpinists()
 		if err != nil {
@@ -78,7 +63,7 @@ func (a *Application) StartServer() {
 		})
 	})
 
-	router.GET("/filter", func(context *gin.Context) {
+	router.GET("/", func(context *gin.Context) {
 		alpinists, err := a.repository.GetActiveAlpinists()
 		if err != nil {
 			log.Println("Error with running\nServer down")
@@ -88,9 +73,13 @@ func (a *Application) StartServer() {
 		searchQuery := context.DefaultQuery("name", "")
 
 		var foundAlpinists []ds.Alpinist
-		for _, alpinist := range *alpinists {
-			if strings.HasPrefix(strings.ToLower(alpinist.Country), strings.ToLower(searchQuery)) {
-				foundAlpinists = append(foundAlpinists, alpinist)
+		if searchQuery == "" {
+			foundAlpinists = *alpinists
+		} else {
+			for _, alpinist := range *alpinists {
+				if strings.HasPrefix(strings.ToLower(alpinist.Country), strings.ToLower(searchQuery)) {
+					foundAlpinists = append(foundAlpinists, alpinist)
+				}
 			}
 		}
 
@@ -159,6 +148,7 @@ func (a *Application) StartServer() {
 	})
 
 	router.Static("/image", "./static/images")
+	router.Static("/css", "./static/css")
 
 	err := router.Run()
 	if err != nil {

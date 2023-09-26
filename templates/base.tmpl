@@ -5,12 +5,11 @@
     <meta charset="UTF-8">
     <title>Альпинисты</title>
 
-    >
+    <link href="/css/index.css" rel="stylesheet">
+
 </head>
 <body>
 <div class="container">
-    <!--        <label for="filter">Фильтр:</label>-->
-
     <form action="/filter" method="GET" class="form">
         <input type="text" id="filter" name="name" size="10" required placeholder="Введите страну..." maxlength="50"/>
     </form>
@@ -22,60 +21,6 @@
         {{template "card_item" .}}
     {{end}}
 </section>
-
-<script>
-    filterSelection("all")
-
-    // function filterSelection(c) {
-    //     let x, i;
-    //     x = document.getElementsByClassName("card");
-    //     if (c === "all")
-    //         c = "";
-    //     let a, j, t
-    //     for (i = 0; i < x.length; i++) {
-    //         RemoveClass(x[i], "show");
-    //         a = x[i].getElementsByClassName("card__category")
-    //         for (j = 0; j < a.length; j++) {
-    //             t = a[j].textContent
-    //             if (t === c || c == "") {
-    //                 AddClass(x[i], "show");
-    //             }
-    //         }
-    //     }
-    // }
-    //
-    // function AddClass(element, name) {
-    //     let i, arr1, arr2;
-    //     arr1 = element.className.split(" ");
-    //     arr2 = name.split(" ");
-    //     for (i = 0; i < arr2.length; i++) {
-    //         if (arr1.indexOf(arr2[i]) == -1) {
-    //             element.className += " " + arr2[i];
-    //         }
-    //     }
-    // }
-    //
-    // function RemoveClass(element, name) {
-    //     let i, arr1, arr2;
-    //     arr1 = element.className.split(" ");
-    //     arr2 = name.split(" ");
-    //     for (i = 0; i < arr2.length; i++) {
-    //         while (arr1.indexOf(arr2[i]) > -1) {
-    //             arr1.splice(arr1.indexOf(arr2[i]), 1);
-    //         }
-    //     }
-    //     element.className = arr1.join(" ");
-    // }
-    //
-    // function onload() {
-    //     const btn = document.getElementById("button");
-    //     btn.addEventListener("click", function () {
-    //         const input = document.getElementById("filter");
-    //         const filter = input.value
-    //         filterSelection(filter)
-    //     })
-    // }
-</script>
 
 </body>
 </html>
