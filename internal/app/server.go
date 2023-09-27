@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 func (a *Application) StartServer() {
@@ -64,41 +63,43 @@ func (a *Application) StartServer() {
 	})
 
 	router.GET("/", func(context *gin.Context) {
-		alpinists, err := a.repository.GetActiveAlpinists()
-		if err != nil {
-			log.Println("Error with running\nServer down")
-			return
-		}
 
-		searchQuery := context.DefaultQuery("name", "")
+		country := context.DefaultQuery("name", "")
 
-		var foundAlpinists []ds.Alpinist
-		if searchQuery == "" {
-			foundAlpinists = *alpinists
+		var foundAlpinists *[]ds.Alpinist
+		var err error
+		if country == "" {
+			foundAlpinists, err = a.repository.GetActiveAlpinists()
+			if err != nil {
+				log.Println("Error with running\nServer down")
+				return
+			}
 		} else {
-			for _, alpinist := range *alpinists {
-				if strings.HasPrefix(strings.ToLower(alpinist.Country), strings.ToLower(searchQuery)) {
-					foundAlpinists = append(foundAlpinists, alpinist)
-				}
+			foundAlpinists, err = a.repository.FilterByCountry(country)
+			if err != nil {
+				log.Println("Error with running\nServer down")
+				return
 			}
 		}
 
 		context.HTML(http.StatusOK, "base.tmpl", gin.H{
-			"alpinists": foundAlpinists,
+			"country":   country,
+			"alpinists": *foundAlpinists,
 		})
 		context.HTML(http.StatusOK, "card_item.tmpl", gin.H{
-			"alpinists": foundAlpinists,
+			"country":   country,
+			"alpinists": *foundAlpinists,
 		})
 	})
 
-	router.GET("/service/delete", func(context *gin.Context) {
+	router.POST("/service/delete", func(context *gin.Context) {
 		alpinists, err := a.repository.GetActiveAlpinists()
 		if err != nil {
 			log.Println("Error with running\nServer down")
 			return
 		}
 
-		id, err := strconv.Atoi(context.DefaultQuery("name", ""))
+		id, err := strconv.Atoi(context.DefaultQuery("id", ""))
 		if err != nil {
 			context.AbortWithStatus(404)
 			return

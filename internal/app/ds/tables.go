@@ -12,8 +12,7 @@ type Expedition struct {
 	ClosedAt    time.Time `json:"start_date"`
 	UserID      uint
 	ModeratorID uint
-	//Users     []User
-	Alpinists []Alpinist `gorm:"many2many:alpinist_expedition"`
+	Alpinists   []Alpinist `gorm:"many2many:alpinist_expedition"`
 }
 
 type User struct {
@@ -22,7 +21,6 @@ type User struct {
 	Password    string       `gorm:"type:varchar(90)"`
 	ImageRef    string       `gorm:"type:varchar(90)"`
 	Expeditions []Expedition `gorm:"foreignkey:UserID;foreignkey:ModeratorID;"`
-	//ExpeditionID uint
 }
 
 type Alpinist struct {
@@ -36,9 +34,3 @@ type Alpinist struct {
 	Status      string       `gorm:"type:varchar(90)"`
 	Expeditions []Expedition `gorm:"many2many:alpinist_expedition"`
 }
-
-//type AlpinistExpedition struct {
-//	ID           uint `gorm:"primarykey;autoIncrement"`
-//	AlpinistID   int
-//	ExpeditionID int
-//}

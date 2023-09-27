@@ -14,7 +14,7 @@
         <span class="card__by"><a href="#" class="card__author" title="author">{{.Lifetime}}</a></span>
     </div>
 </article>
-<form action="/service/delete" method="GET">
-    <button name="name" value="{{.ID}}"></button>
+<form action="/service/delete" method="POST">
+    <button name="id" value="{{.ID}}"></button>
 </form>
 {{end}}
