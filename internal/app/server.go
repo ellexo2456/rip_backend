@@ -21,11 +21,10 @@ func (a *Application) StartServer() {
 
 	router := gin.Default()
 
-	router.LoadHTMLGlob("templates/*")
+	//router.LoadHTMLGlob("templates/*")
 
 	router.GET("/", a.filterAlpinistsByCountry)
 	router.GET("/alpinist/:id", a.getAlpinistPage)
-	//router.GET("/alpinist/filter", a.filterAlpinistsByCountry)
 	router.POST("/alpinist/delete", a.deleteAlpinist)
 	router.POST("/expedition", a.addService)
 	router.PUT("/expedition", a.changeExpeditionInfoFields)
@@ -49,11 +48,11 @@ func (a *Application) StartServer() {
 // @Summary      returns the page with a filtered alpinists
 // @Description  returns the page with an alpinists that had been filtered by a country
 // @Tags         alpinists
-// @Produce      html
+// @Produce      json
 // @Param        name query string true "country name"
-// @Success      200  {array} ds.Alpinist
-// @Failure      500  {string} string "can`t get the alpinists list"
-// @Router       /alpinist/{name} [get]
+// @Success      200  {json}
+// @Failure      500  {json}
+// @Router       /{name} [get]
 func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
 	country := c.DefaultQuery("name", "")
 
@@ -73,64 +72,23 @@ func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "base.tmpl", gin.H{
-		"country":   country,
-		"alpinists": *foundAlpinists,
-	})
-	c.HTML(http.StatusOK, "card_item.tmpl", gin.H{
+	c.JSON(http.StatusInternalServerError, gin.H{
 		"country":   country,
 		"alpinists": *foundAlpinists,
 	})
 }
 
-//// loadMainPage godoc
-//// @Summary      returns the main page
-//// @Description  load alpinists from db and returns the main page with them as a context
-//// @Tags         alpinists
-//// @Produce      html
-//// @Success      200  {array} ds.Alpinist
-//// @Failure      500  {string} string "can`t get the alpinists list"
-//// @Router       / [get]
-//func (a *Application) loadMainPage(c *gin.Context) {
-//	country := c.DefaultQuery("name", "")
-//
-//	var foundAlpinists *[]ds.Alpinist
-//	var err error
-//	if country == "" {
-//		foundAlpinists, err = a.repository.GetActiveAlpinists()
-//		if err != nil {
-//			log.Println("Error with running\nServer down")
-//			return
-//		}
-//	} else {
-//		foundAlpinists, err = a.repository.FilterByCountry(country)
-//		if err != nil {
-//			log.Println("Error with running\nServer down")
-//			return
-//		}
-//	}
-//
-//	c.HTML(http.StatusOK, "base.tmpl", gin.H{
-//		"country":   country,
-//		"alpinists": *foundAlpinists,
-//	})
-//	c.HTML(http.StatusOK, "card_item.tmpl", gin.H{
-//		"country":   country,
-//		"alpinists": *foundAlpinists,
-//	})
-//}
-
 // getAlpinistPage godoc
 // @Summary      returns the page of the alpinist
 // @Description  returns the page of the alpinist by the provided id
 // @Tags         alpinists
-// @Produce      html
+// @Produce      json
 // @Param        id path uint true "id os alpinist"
-// @Success      200  {object} ds.Alpinist
-// @Failure      500  {string} string "can`t get the alpinists list"
-// @Failure      400  {string} string "invalid parameter id"
-// @Failure      400  {string} string "negative parameter id"
-// @Failure      404  {string} string "id is out of rage"
+// @Success      200  {json}
+// @Failure      500  {json}
+// @Failure      400  {json}
+// @Failure      400  {json}
+// @Failure      404  {json}
 // @Router       /alpinist/{id} [get]
 func (a *Application) getAlpinistPage(c *gin.Context) {
 	alpinists, err := a.repository.GetActiveAlpinists()
@@ -176,7 +134,7 @@ func (a *Application) getAlpinistPage(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "card.tmpl", gin.H{
+	c.JSON(http.StatusBadRequest, gin.H{
 		"alpinist": alpinist,
 	})
 }
@@ -185,7 +143,7 @@ func (a *Application) getAlpinistPage(c *gin.Context) {
 // @Summary      deletes an alpinist
 // @Description  deletes an alpinist by a given id and returns the page without it
 // @Tags         alpinists
-// @Produce      html
+// @Produce      json
 // @Param        id query uint true "alpinists id"
 // @Success      200  {array} ds.Alpinist
 // @Failure      500  {string} string "can`t get the alpinists list"
@@ -251,10 +209,7 @@ func (a *Application) deleteAlpinist(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "base.tmpl", gin.H{
-		"alpinists": activeAlpinists,
-	})
-	c.HTML(http.StatusOK, "card_item.tmpl", gin.H{
+	c.JSON(http.StatusNotFound, gin.H{
 		"alpinists": activeAlpinists,
 	})
 }
@@ -383,9 +338,9 @@ func (a *Application) changeExpeditionModeratorStatus(c *gin.Context) {
 // @Description  returns the page with an expeditions that had been filtered by a status
 // @Param        name query string true "new status of the expedition"
 // @Tags         expeditions
-// @Produce      html
-// @Success      200  {array} ds.Expedition
-// @Failure      500  {string} string "error with db"
+// @Produce      json
+// @Success      200  {json}
+// @Failure      500  {json}
 // @Router       /expedition/filter/{name} [get]
 func (a *Application) filterExpeditionsByStatus(c *gin.Context) {
 	searchQuery := c.DefaultQuery("name", "")
