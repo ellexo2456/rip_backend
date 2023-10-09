@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -25,7 +26,7 @@ func (a *Application) StartServer() {
 	router.GET("/", a.filterAlpinistsByCountry)
 	router.GET("/alpinist/:id", a.getAlpinistPage)
 	//router.GET("/alpinist/filter", a.filterAlpinistsByCountry)
-	router.GET("/alpinist/delete", a.deleteAlpinist)
+	router.POST("/alpinist/delete", a.deleteAlpinist)
 	router.POST("/expedition", a.addService)
 	router.PUT("/expedition", a.changeExpeditionInfoFields)
 	router.PUT("/expedition/status/user", a.changeExpeditionUserStatus)
@@ -33,6 +34,7 @@ func (a *Application) StartServer() {
 	router.GET("/expedition/filter", a.filterExpeditionsByStatus)
 
 	router.Static("/image", "./static/images")
+	router.Static("/css", "./static/css")
 
 	err := router.Run()
 	if err != nil {
@@ -196,67 +198,56 @@ func (a *Application) getAlpinistPage(c *gin.Context) {
 func (a *Application) deleteAlpinist(c *gin.Context) {
 	alpinists, err := a.repository.GetActiveAlpinists()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "fail",
-			"message": "can`t get the alpinists list",
-		})
+		log.Println("Error with running\nServer down")
+		return
 	}
 
-	id, err := strconv.Atoi(c.DefaultQuery("id", ""))
+	data, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "fail",
-			"message": "invalid parameter id",
-		})
+		log.Println("Error with running\nServer down")
+		return
+	}
+	str := string(data)
+	str = strings.TrimPrefix(str, "id=")
+	id, err := strconv.Atoi(str)
+
+	if err != nil {
+		c.AbortWithStatus(404)
 		return
 	}
 
 	if id < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "fail",
-			"message": "negative parameter id",
-		})
+		c.AbortWithStatus(404)
+		return
+	}
+
+	if len(*alpinists) == 0 {
+		c.AbortWithStatus(404)
 		return
 	}
 
 	var activeAlpinists []ds.Alpinist
 	var alpinistToDelete ds.Alpinist
-	var flag bool
+
 	for _, alpinist := range *alpinists {
 		if alpinist.ID != uint(id) {
 			activeAlpinists = append(activeAlpinists, alpinist)
 		} else {
 			alpinistToDelete = alpinist
-			flag = true
 		}
-	}
-
-	if !flag {
-		c.JSON(http.StatusNotFound, gin.H{
-			"status":  "fail",
-			"message": "id is out of range",
-		})
-		return
 	}
 
 	var db *sql.DB
 	_ = godotenv.Load()
 	db, err = sql.Open("postgres", dsn.FromEnv())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "fail",
-			"message": "can`t open db connection",
-		})
-		return
+		log.Fatal(err)
 	}
 	defer db.Close()
 
 	_, err = db.Exec("UPDATE alpinists SET status = $1 WHERE id = $2", "удалён", alpinistToDelete.ID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "fail",
-			"message": "can`t delete alpinist in db",
-		})
+		c.AbortWithStatus(500)
 		return
 	}
 
