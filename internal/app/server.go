@@ -8,9 +8,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func (a *Application) StartServer() {
@@ -99,7 +101,15 @@ func (a *Application) StartServer() {
 			return
 		}
 
-		id, err := strconv.Atoi(context.DefaultQuery("id", ""))
+		data, err := io.ReadAll(context.Request.Body)
+		if err != nil {
+			log.Println("Error with running\nServer down")
+			return
+		}
+		str := string(data)
+		str = strings.TrimPrefix(str, "id=")
+		id, err := strconv.Atoi(str)
+
 		if err != nil {
 			context.AbortWithStatus(404)
 			return
