@@ -22,9 +22,9 @@ func (a *Application) StartServer() {
 
 	router.LoadHTMLGlob("templates/*")
 
-	router.GET("/", a.loadMainPage)
+	router.GET("/", a.filterAlpinistsByCountry)
 	router.GET("/alpinist/:id", a.getAlpinistPage)
-	router.GET("/alpinist/filter", a.filterAlpinistsByCountry)
+	//router.GET("/alpinist/filter", a.filterAlpinistsByCountry)
 	router.GET("/alpinist/delete", a.deleteAlpinist)
 	router.POST("/expedition", a.addService)
 	router.PUT("/expedition", a.changeExpeditionInfoFields)
@@ -43,30 +43,80 @@ func (a *Application) StartServer() {
 	log.Println("Server down")
 }
 
-// loadMainPage godoc
-// @Summary      returns the main page
-// @Description  load alpinists from db and returns the main page with them as a context
+// filterAlpinistsByCountry godoc
+// @Summary      returns the page with a filtered alpinists
+// @Description  returns the page with an alpinists that had been filtered by a country
 // @Tags         alpinists
 // @Produce      html
+// @Param        name query string true "country name"
 // @Success      200  {array} ds.Alpinist
 // @Failure      500  {string} string "can`t get the alpinists list"
-// @Router       / [get]
-func (a *Application) loadMainPage(c *gin.Context) {
-	alpinists, err := a.repository.GetActiveAlpinists()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "fail",
-			"message": "can`t get the alpinists list",
-		})
+// @Router       /alpinist/{name} [get]
+func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
+	country := c.DefaultQuery("name", "")
+
+	var foundAlpinists *[]ds.Alpinist
+	var err error
+	if country == "" {
+		foundAlpinists, err = a.repository.GetActiveAlpinists()
+		if err != nil {
+			log.Println("Error with running\nServer down")
+			return
+		}
+	} else {
+		foundAlpinists, err = a.repository.FilterByCountry(country)
+		if err != nil {
+			log.Println("Error with running\nServer down")
+			return
+		}
 	}
 
 	c.HTML(http.StatusOK, "base.tmpl", gin.H{
-		"alpinists": *alpinists,
+		"country":   country,
+		"alpinists": *foundAlpinists,
 	})
 	c.HTML(http.StatusOK, "card_item.tmpl", gin.H{
-		"alpinists": *alpinists,
+		"country":   country,
+		"alpinists": *foundAlpinists,
 	})
 }
+
+//// loadMainPage godoc
+//// @Summary      returns the main page
+//// @Description  load alpinists from db and returns the main page with them as a context
+//// @Tags         alpinists
+//// @Produce      html
+//// @Success      200  {array} ds.Alpinist
+//// @Failure      500  {string} string "can`t get the alpinists list"
+//// @Router       / [get]
+//func (a *Application) loadMainPage(c *gin.Context) {
+//	country := c.DefaultQuery("name", "")
+//
+//	var foundAlpinists *[]ds.Alpinist
+//	var err error
+//	if country == "" {
+//		foundAlpinists, err = a.repository.GetActiveAlpinists()
+//		if err != nil {
+//			log.Println("Error with running\nServer down")
+//			return
+//		}
+//	} else {
+//		foundAlpinists, err = a.repository.FilterByCountry(country)
+//		if err != nil {
+//			log.Println("Error with running\nServer down")
+//			return
+//		}
+//	}
+//
+//	c.HTML(http.StatusOK, "base.tmpl", gin.H{
+//		"country":   country,
+//		"alpinists": *foundAlpinists,
+//	})
+//	c.HTML(http.StatusOK, "card_item.tmpl", gin.H{
+//		"country":   country,
+//		"alpinists": *foundAlpinists,
+//	})
+//}
 
 // getAlpinistPage godoc
 // @Summary      returns the page of the alpinist
@@ -126,41 +176,6 @@ func (a *Application) getAlpinistPage(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "card.tmpl", gin.H{
 		"alpinist": alpinist,
-	})
-}
-
-// filterAlpinistsByCountry godoc
-// @Summary      returns the page with a filtered alpinists
-// @Description  returns the page with an alpinists that had been filtered by a country
-// @Tags         alpinists
-// @Produce      html
-// @Param        name query string true "country name"
-// @Success      200  {array} ds.Alpinist
-// @Failure      500  {string} string "can`t get the alpinists list"
-// @Router       /alpinist/filter/{name} [get]
-func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
-	alpinists, err := a.repository.GetActiveAlpinists()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "fail",
-			"message": "can`t get the alpinists list",
-		})
-	}
-
-	searchQuery := c.DefaultQuery("name", "")
-
-	var foundAlpinists []ds.Alpinist
-	for _, alpinist := range *alpinists {
-		if strings.HasPrefix(strings.ToLower(alpinist.Country), strings.ToLower(searchQuery)) {
-			foundAlpinists = append(foundAlpinists, alpinist)
-		}
-	}
-
-	c.HTML(http.StatusOK, "base.tmpl", gin.H{
-		"alpinists": foundAlpinists,
-	})
-	c.HTML(http.StatusOK, "card_item.tmpl", gin.H{
-		"alpinists": foundAlpinists,
 	})
 }
 
