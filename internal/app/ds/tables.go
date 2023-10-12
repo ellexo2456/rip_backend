@@ -24,13 +24,13 @@ type User struct {
 }
 
 type Alpinist struct {
-	ID          uint   `gorm:"primarykey;autoIncrement"`
-	Name        string `gorm:"type:varchar(90)"`
-	Lifetime    string `gorm:"type:varchar(90)"`
-	Country     string `gorm:"type:varchar(90)"`
-	ImageRef    string `gorm:"type:varchar(90)"`
-	BigImageRef string `gorm:"type:varchar(90)"`
-	Description string
+	ID          uint         `gorm:"primarykey;autoIncrement" json:"id"`
+	Name        string       `gorm:"type:varchar(90)" json:"name"`
+	Lifetime    string       `gorm:"type:varchar(90)" json:"lifetime"`
+	Country     string       `gorm:"type:varchar(90)" json:"country"`
+	ImageRef    string       `gorm:"type:varchar(90)" json:"imageRef"`
+	BigImageRef string       `gorm:"type:varchar(90)" json:"bigImageRef"`
+	Description string       `json:"description"`
 	Status      string       `gorm:"type:varchar(90)"`
 	Expeditions []Expedition `gorm:"many2many:alpinist_expedition"`
 }
