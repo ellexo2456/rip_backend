@@ -342,20 +342,19 @@ func (a *Application) filterExpeditionsByStatusAndFormedTime(c *gin.Context) {
 		return
 	}
 
-	userID := ds.UserID
 	var foundExpeditions *[]ds.Expedition
 	var err error
 	if status == "" && startTime == "" && endTime == "" {
-		foundExpeditions, err = a.repository.GetExpeditions(userID)
+		foundExpeditions, err = a.repository.GetExpeditions()
 	}
 	if status != "" && startTime == "" && endTime == "" {
-		foundExpeditions, err = a.repository.FilterByStatus(userID, status)
+		foundExpeditions, err = a.repository.FilterByStatus(status)
 	}
 	if status == "" && startTime != "" && endTime != "" {
-		foundExpeditions, err = a.repository.FilterByFormedTime(userID, startTime, endTime)
+		foundExpeditions, err = a.repository.FilterByFormedTime(startTime, endTime)
 	}
 	if status != "" && startTime != "" && endTime != "" {
-		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(userID, startTime, endTime, status)
+		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(startTime, endTime, status)
 	}
 
 	if err != nil {

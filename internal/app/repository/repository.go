@@ -100,9 +100,9 @@ func (repository *Repository) UpdateExpedition(expedition ds.Expedition) error {
 	return nil
 }
 
-func (repository *Repository) FilterByStatus(userID int, status string) (*[]ds.Expedition, error) {
+func (repository *Repository) FilterByStatus(status string) (*[]ds.Expedition, error) {
 	expedition := &[]ds.Expedition{}
-	err := repository.db.Find(expedition, "user_id = ? AND status = ?", userID, status).Error
+	err := repository.db.Find(expedition, "status = ?", status).Error
 	if err != nil {
 		return nil, err
 	}
@@ -110,9 +110,9 @@ func (repository *Repository) FilterByStatus(userID int, status string) (*[]ds.E
 	return expedition, nil
 }
 
-func (repository *Repository) FilterByFormedTime(userID int, startTime string, endTime string) (*[]ds.Expedition, error) {
+func (repository *Repository) FilterByFormedTime(startTime string, endTime string) (*[]ds.Expedition, error) {
 	expedition := &[]ds.Expedition{}
-	err := repository.db.Find(expedition, "user_id = ? AND formed_at BETWEEN ? AND ?", userID, startTime, endTime).Error
+	err := repository.db.Find(expedition, "formed_at BETWEEN ? AND ?", startTime, endTime).Error
 	if err != nil {
 		return nil, err
 	}
@@ -120,9 +120,9 @@ func (repository *Repository) FilterByFormedTime(userID int, startTime string, e
 	return expedition, nil
 }
 
-func (repository *Repository) FilterByFormedTimeAndStatus(userID int, startTime string, endTime string, status string) (*[]ds.Expedition, error) {
+func (repository *Repository) FilterByFormedTimeAndStatus(startTime string, endTime string, status string) (*[]ds.Expedition, error) {
 	expedition := &[]ds.Expedition{}
-	err := repository.db.Find(expedition, "user_id = ? AND status = ? AND formed_at BETWEEN ? AND ?", userID, status, startTime, endTime).Error
+	err := repository.db.Find(expedition, "status = ? AND formed_at BETWEEN ? AND ?", status, startTime, endTime).Error
 	if err != nil {
 		return nil, err
 	}
@@ -130,10 +130,10 @@ func (repository *Repository) FilterByFormedTimeAndStatus(userID int, startTime 
 	return expedition, nil
 }
 
-func (repository *Repository) GetExpeditions(userID int) (*[]ds.Expedition, error) {
+func (repository *Repository) GetExpeditions() (*[]ds.Expedition, error) {
 	expeditions := &[]ds.Expedition{}
 
-	err := repository.db.Find(expeditions, "user_id = ?", userID).Error
+	err := repository.db.Find(expeditions).Error
 	if err != nil {
 		return nil, err
 	}
