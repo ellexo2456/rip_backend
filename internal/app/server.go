@@ -80,21 +80,12 @@ func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
 // @Description  returns the page of the alpinist by the provided id
 // @Tags         alpinists
 // @Produce      json
-// @Param        id path uint true "id os alpinist"
+// @Param        id path uint true "id of alpinist"
 // @Success      200  {json}
 // @Failure      500  {json}
 // @Failure      400  {json}
-// @Failure      404  {json}
 // @Router       /alpinist/{id} [get]
 func (a *Application) getAlpinist(c *gin.Context) {
-	alpinists, err := a.repository.GetActiveAlpinists()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "fail",
-			"message": "can`t get the alpinists list",
-		})
-	}
-
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -112,20 +103,11 @@ func (a *Application) getAlpinist(c *gin.Context) {
 		return
 	}
 
-	var alpinist ds.Alpinist
-	flag := true
-	for _, alp := range *alpinists {
-		if alp.ID == uint(id) {
-			alpinist = alp
-			flag = false
-			break
-		}
-	}
-
-	if flag {
-		c.JSON(http.StatusNotFound, gin.H{
+	alpinist, err := a.repository.GetAlpinistByID(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "fail",
-			"message": "id is out of rage",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -142,7 +124,6 @@ func (a *Application) getAlpinist(c *gin.Context) {
 // @Produce      json
 // @Param        id query uint true "alpinists id"
 // @Success      204
-// @Failure      500  {json}
 // @Failure      400  {json}
 // @Failure      404  {json}
 // @Failure      500  {json}
@@ -266,8 +247,6 @@ func (a *Application) modifyAlpinist(c *gin.Context) {
 // @Tags         expeditions
 // @Accept       json
 // @Produce      json
-// @Failure      400  {json}
-// @Failure      400  {json}
 // @Failure      400  {json}
 // @Failure      404  {json}
 // @Failure      500  {json}

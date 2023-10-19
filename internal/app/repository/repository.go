@@ -24,7 +24,7 @@ func New(dsn string) (*Repository, error) {
 func (repository *Repository) GetAlpinistByID(id int) (*ds.Alpinist, error) {
 	alpinist := &ds.Alpinist{}
 
-	err := repository.db.First(alpinist, "id = ?", id).Error
+	err := repository.db.Preload("Expeditions").First(alpinist, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
