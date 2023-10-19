@@ -1,6 +1,5 @@
 package app
 
-import "C"
 import (
 	"RIpPeakBack/internal/app/ds"
 	"RIpPeakBack/internal/app/dsn"
@@ -11,7 +10,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -20,19 +18,19 @@ func (a *Application) StartServer() {
 
 	router := gin.Default()
 
-	//router.LoadHTMLGlob("templates/*")
-
 	router.GET("/", a.filterAlpinistsByCountry)
 	router.GET("/alpinist/:id", a.getAlpinist)
 	router.POST("/alpinist/delete", a.deleteAlpinist)
-	router.POST("/expedition", a.addExpedition)
+	router.POST("/alpinist", a.addAlpinist)
+	router.POST("/alpinist/expedition", a.addAlpinistToLastExpedition)
+	router.PUT("/alpinist", a.modifyAlpinist)
+
 	router.PUT("/expedition", a.changeExpeditionInfoFields)
 	router.PUT("/expedition/status/user", a.changeExpeditionUserStatus)
 	router.PUT("/expedition/status/moderator", a.changeExpeditionModeratorStatus)
-	router.GET("/expedition/filter", a.filterExpeditionsByStatus)
-
-	//router.Static("/image", "./static/images")
-	//router.Static("/css", "./static/css")
+	router.GET("/expedition/filter", a.filterExpeditionsByStatusAndFormedTime)
+	router.GET("/expedition/:id", a.getExpedition)
+	router.DELETE("/expedition", a.deleteExpedition)
 
 	err := router.Run()
 	if err != nil {
@@ -85,7 +83,6 @@ func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
 // @Param        id path uint true "id os alpinist"
 // @Success      200  {json}
 // @Failure      500  {json}
-// @Failure      400  {json}
 // @Failure      400  {json}
 // @Failure      404  {json}
 // @Router       /alpinist/{id} [get]
@@ -153,11 +150,17 @@ func (a *Application) getAlpinist(c *gin.Context) {
 func (a *Application) deleteAlpinist(c *gin.Context) {
 	id, err := strconv.Atoi(c.DefaultQuery("id", ""))
 	if err != nil {
-		c.AbortWithStatus(400)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid id param",
+		})
 		return
 	}
 	if id < 0 {
-		c.AbortWithStatus(404)
+		c.JSON(http.StatusNotFound, gin.H{
+			"status":  "fail",
+			"message": "negative id param",
+		})
 		return
 	}
 
@@ -178,7 +181,7 @@ func (a *Application) deleteAlpinist(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// addExpedition godoc
+// addAlpinistToLastExpedition godoc
 // @Summary      adds an alpinist to expedition
 // @Description  creates expedition and adds an alpinist to
 // @Tags         alpinists, expeditions
@@ -186,24 +189,34 @@ func (a *Application) deleteAlpinist(c *gin.Context) {
 // @Produce      json
 // @Success      200  {json}
 // @Failure      400  {json}
-// @Failure      400  {json}
-// @Failure      400  {json}
 // @Failure      404  {json}
 // @Failure      500  {json}
-// @Router       /expedition [post]
-func (a *Application) addExpedition(c *gin.Context) {
-	expedition, errMessage, code := getExpedition(c, a)
-	if expedition == nil {
-		c.JSON(code, gin.H{
+// @Router       /alpinist/expedition [post]
+func (a *Application) addAlpinistToLastExpedition(c *gin.Context) {
+	var expedition ds.Expedition
+	if err := c.ShouldBindJSON(&expedition); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "fail",
-			"message": errMessage,
+			"message": "invalid request body",
+		})
+		return
+	}
+
+	expedition.UserID = ds.UserID
+	expedition.ModeratorID = ds.UserID
+	setTime(&expedition)
+
+	if expedition.Status != ds.StatusDraft {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid status",
 		})
 		return
 	}
 
 	expedition.CreatedAt = time.Now()
 	var err error
-	if expedition.ID, err = a.repository.AddExpedition(*expedition); err != nil {
+	if expedition.ID, err = a.repository.AddExpedition(expedition); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "fail",
 			"message": "can`t post expedition into db",
@@ -211,8 +224,40 @@ func (a *Application) addExpedition(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, expedition)
-	return
+	c.JSON(http.StatusOK, gin.H{
+		"id": expedition.ID,
+	})
+}
+
+// modifyAlpinist godoc
+// @Summary      modify an alpinist
+// @Description  modify an alpinist data
+// @Tags         alpinists
+// @Accept       json
+// @Produce      json
+// @Failure      400  {json}
+// @Failure      500  {json}
+// @Success      200  {json}
+// @Router       /alpinist [put]
+func (a *Application) modifyAlpinist(c *gin.Context) {
+	var alpinist ds.Alpinist
+	if err := c.ShouldBindJSON(&alpinist); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid request body",
+		})
+		return
+	}
+
+	if err := a.repository.UpdateAlpinist(alpinist); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": "can`t update expedition in db",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, alpinist)
 }
 
 // changeExpeditionInfoFields godoc
@@ -229,14 +274,15 @@ func (a *Application) addExpedition(c *gin.Context) {
 // @Success      200  {json}
 // @Router       /expedition [put]
 func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
-	expedition, errMessage, code := getExpedition(c, a)
-	if expedition == nil {
-		c.JSON(code, gin.H{
+	var expedition ds.Expedition
+	if err := c.ShouldBindJSON(&expedition); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "fail",
-			"message": errMessage,
+			"message": "invalid request body",
 		})
 		return
 	}
+
 	dbExpedition, err := a.repository.GetExpeditionById(expedition.ID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -251,7 +297,7 @@ func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
 	expedition.FormedAt = dbExpedition.FormedAt
 	expedition.ClosedAt = dbExpedition.ClosedAt
 
-	if err = a.repository.UpdateExpedition(*expedition); err != nil {
+	if err = a.repository.UpdateExpedition(expedition); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "fail",
 			"message": "can`t update expedition in db",
@@ -260,21 +306,18 @@ func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, expedition)
-	return
 }
 
 // changeExpeditionUserStatus godoc
 // @Summary      changes an expedition status
 // @Description  changes an expedition status with that one witch can be changed by a user
 // @Tags         expeditions
-// @Param        id query uint true "expedition id"
 // @Accept       json
 // @Success      204
-// @Failure      400  {string} string "invalid status"
-// @Failure      400  {string} string "invalid query parameters (ids)"
-// @Failure      400  {string} string "negative id"
-// @Failure      404  {string} string "id is out of range"
-// @Failure      500  {string} string "can`t update status in db"
+// @Failure      400  {json}
+// @Failure      403  {json}
+// @Failure      404  {json}
+// @Failure      500  {json}
 // @Router       /expedition/status/user/{id} [put]
 func (a *Application) changeExpeditionUserStatus(c *gin.Context) {
 	changeStatus(c, a, checkUserStatus)
@@ -284,48 +327,203 @@ func (a *Application) changeExpeditionUserStatus(c *gin.Context) {
 // @Summary      changes an expedition status
 // @Description  changes an expedition status with that one witch can be changed by a moderator
 // @Tags         expeditions
-// @Param        id query uint true "expedition id"
 // @Accept       json
 // @Success      204
-// @Failure      400  {json} string
-// @Failure      400  {json} string
-// @Failure      400  {json} string
-// @Failure      404  {json} string
-// @Failure      500  {json} string
+// @Failure      400  {json}
+// @Failure      403  {json}
+// @Failure      404  {json}
+// @Failure      500  {json}
 // @Router       /expedition/status/moderator/{id} [put]
 func (a *Application) changeExpeditionModeratorStatus(c *gin.Context) {
 	changeStatus(c, a, checkModeratorStatus)
 }
 
-// filterExpeditionsByStatus godoc
+// filterExpeditionsByStatusAndFormedTime godoc
 // @Summary      returns the page with a filtered expeditions
-// @Description  returns the page with an expeditions that had been filtered by a status
-// @Param        name query string true "new status of the expedition"
+// @Description  returns the page with an expeditions that had been filtered by a status or/and formed time
+// @Param        status query string false "new status of the expedition"
+// @Param        startTime query string false "start time of interval for filter to formed time"
+// @Param        endTime query string false "start time of interval for filter to formed time"
 // @Tags         expeditions
 // @Produce      json
 // @Success      200  {json}
+// @Failure      400  {json}
 // @Failure      500  {json}
 // @Router       /expedition/filter/{status} [get]
-func (a *Application) filterExpeditionsByStatus(c *gin.Context) {
+func (a *Application) filterExpeditionsByStatusAndFormedTime(c *gin.Context) {
 	status := c.DefaultQuery("status", "")
+	startTime := c.DefaultQuery("startTime", "")
+	endTime := c.DefaultQuery("endTime", "")
 
+	if startTime != "" && endTime == "" || startTime == "" && endTime != "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "missing times parameter",
+		})
+		return
+	}
+
+	userID := ds.UserID
 	var foundExpeditions *[]ds.Expedition
 	var err error
-	if status == "" {
-		foundExpeditions, err = a.repository.GetExpeditions()
-	} else {
-		foundExpeditions, err = a.repository.FilterByStatus(status)
+	if status == "" && startTime == "" && endTime == "" {
+		foundExpeditions, err = a.repository.GetExpeditions(userID)
+	}
+	if status != "" && startTime == "" && endTime == "" {
+		foundExpeditions, err = a.repository.FilterByStatus(userID, status)
+	}
+	if status == "" && startTime != "" && endTime != "" {
+		foundExpeditions, err = a.repository.FilterByFormedTime(userID, startTime, endTime)
+	}
+	if status != "" && startTime != "" && endTime != "" {
+		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(userID, startTime, endTime, status)
 	}
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "fail",
-			"message": "error with db",
+			"message": err.Error(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, foundExpeditions)
+	c.JSON(http.StatusOK, *foundExpeditions)
+}
+
+// addAlpinist godoc
+// @Summary      adds the alpinist
+// @Description  creates the alpinist and puts it to db
+// @Tags         alpinists, expeditions
+// @Accept       json
+// @Produce      json
+// @Success      200  {json}
+// @Failure      400  {json}
+// @Failure      500  {json}
+// @Router       /alpinist [post]
+func (a *Application) addAlpinist(c *gin.Context) {
+	var alpinist ds.Alpinist
+	if err := c.ShouldBindJSON(&alpinist); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid request body",
+		})
+	}
+
+	var err error
+	if alpinist.ID, err = a.repository.AddAlpinist(alpinist); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id": alpinist.ID,
+	})
+	return
+}
+
+// getExpedition godoc
+// @Summary      returns the expedition by its id
+// @Description  returns the expedition by its id
+// @Tags         expeditions
+// @Produce      json
+// @Param        id path uint true "id of expedition"
+// @Success      200  {json}
+// @Failure      500  {json}
+// @Failure      400  {json}
+// @Failure      404  {json}
+// @Router       /expedition/{id} [get]
+func (a *Application) getExpedition(c *gin.Context) {
+	expeditionID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid parameter id",
+		})
+		return
+	}
+
+	if expeditionID < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "negative parameter id",
+		})
+		return
+	}
+
+	expedition, err := a.repository.GetExpeditionByID(expeditionID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"expedition": expedition,
+	})
+}
+
+// deleteExpedition godoc
+// @Summary      deletes an expedition
+// @Description  deletes an expedition from db
+// @Tags         expeditions
+// @Produce      json
+// @Param        id query uint true "expedition id"
+// @Success      204
+// @Failure      500  {json}
+// @Failure      400  {json}
+// @Failure      404  {json}
+// @Failure      500  {json}
+// @Router       /expedition/{id} [delete]
+func (a *Application) deleteExpedition(c *gin.Context) {
+	id, err := strconv.Atoi(c.DefaultQuery("id", ""))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid id param",
+		})
+		return
+	}
+	if id < 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status":  "fail",
+			"message": "negative id param",
+		})
+		return
+	}
+
+	expedition, err := a.repository.GetExpeditionByID(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	err = a.repository.DeleteExpedition(*expedition)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func setTime(expedition *ds.Expedition) {
+	if expedition.Status == ds.StatusFormed {
+		expedition.FormedAt = time.Now()
+	}
+	if expedition.Status == ds.StatusCanceled {
+		expedition.ClosedAt = time.Now()
+	}
 }
 
 func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool) {
@@ -347,35 +545,40 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool)
 		return
 	}
 
-	if expedition.Status == "завершён" {
-		expedition.FormedAt = time.Now()
-	}
-	if expedition.Status == "удалён" {
-		expedition.ClosedAt = time.Now()
-	}
+	expedition.UserID = ds.UserID
+	expedition.ModeratorID = ds.UserID
 
-	id, err := strconv.Atoi(c.DefaultQuery("id", ""))
+	setTime(&expedition)
+
+	//id, err := strconv.Atoi(c.DefaultQuery("id", ""))
+	//if err != nil {
+	//	c.JSON(http.StatusBadRequest, gin.H{
+	//		"status":  "fail",
+	//		"message": "invalid parameter id",
+	//	})
+	//	return
+	//}
+	//
+	//if id < 0 {
+	//	c.JSON(http.StatusBadRequest, gin.H{
+	//		"status":  "fail",
+	//		"message": "negative parameter id",
+	//	})
+	//	return
+	//}
+	expeditionWithStatus, err := a.repository.GetExpeditionById(expedition.ID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "fail",
-			"message": "invalid parameter id",
-		})
-		return
-	}
-
-	if id < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "fail",
-			"message": "negative parameter id",
-		})
-		return
-	}
-
-	expedition.ID = uint(id)
-	if _, err := a.repository.GetExpeditionById(expedition.ID); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"status":  "fail",
 			"message": "id is out of range",
+		})
+		return
+	}
+
+	if expedition.Status == ds.StatusCanceled || expedition.Status == ds.StatusDenied && expeditionWithStatus.Status != ds.StatusFormed {
+		c.JSON(http.StatusForbidden, gin.H{
+			"status":  "fail",
+			"message": "can`t close order that isn`t open",
 		})
 		return
 	}
@@ -393,59 +596,30 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool)
 }
 
 func checkUserStatus(status string) bool {
-	if status != "введён" && status != "отменён" {
+	if status != ds.StatusDraft && status != ds.StatusFormed && status != ds.StatusDeleted {
 		return false
 	}
 	return true
 }
 
 func checkModeratorStatus(status string) bool {
-	if status != "завершён" && status != "в работе" && status != "удалён" {
+	if status != ds.StatusCanceled && status != ds.StatusDenied {
 		return false
 	}
 	return true
 }
 
-func getExpedition(c *gin.Context, a *Application) (*ds.Expedition, string, int) {
-	var expedition = ds.Expedition{}
-
-	var err error
-	if err = c.ShouldBindJSON(&expedition); err != nil {
-		return nil, "invalid request body", http.StatusBadRequest
-	}
-
-	query := c.DefaultQuery("ids", "")
-	var ids []int
-	if ids, err = toIntArray(query); err != nil {
-		return nil, "invalid query parameters (ids)", http.StatusBadRequest
-	}
-
-	for _, alpinistId := range ids {
-		if alpinistId < 0 {
-			return nil, "negative id", http.StatusBadRequest
-		}
-
-		if alp, err := a.repository.GetAlpinistByID(alpinistId); err != nil {
-			return nil, "id is out of range", http.StatusNotFound
-		} else {
-			expedition.Alpinists = append(expedition.Alpinists, *alp)
-		}
-	}
-
-	return &expedition, "", 0
-}
-
-func toIntArray(str string) ([]int, error) {
-	chunks := strings.Split(str, ",")
-
-	var res []int
-	for _, c := range chunks {
-		if i, err := strconv.Atoi(c); err != nil {
-			return nil, err
-		} else {
-			res = append(res, i)
-		}
-	}
-
-	return res, nil
-}
+//func toIntArray(str string) ([]int, error) {
+//	chunks := strings.Split(str, ",")
+//
+//	var res []int
+//	for _, c := range chunks {
+//		if i, err := strconv.Atoi(c); err != nil {
+//			return nil, err
+//		} else {
+//			res = append(res, i)
+//		}
+//	}
+//
+//	return res, nil
+//}

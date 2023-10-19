@@ -2,25 +2,32 @@ package ds
 
 import "time"
 
+const (
+	UserID      = 1
+	ModeratorID = 2
+)
+
 type Expedition struct {
-	ID          uint   `gorm:"primarykey;autoIncrement"`
-	Name        string `gorm:"type:varchar(90)"`
-	Year        int
-	Status      string    `gorm:"type:varchar(90)"`
-	CreatedAt   time.Time `json:"start_date"`
-	FormedAt    time.Time `json:"start_date"`
-	ClosedAt    time.Time `json:"start_date"`
-	UserID      uint
-	ModeratorID uint
-	Alpinists   []Alpinist `gorm:"many2many:alpinist_expedition"`
+	ID            uint       `gorm:"primarykey;autoIncrement" json:"id"`
+	Name          string     `gorm:"type:varchar(90)" json:"name"`
+	Year          int        `json:"year"`
+	Status        string     `gorm:"type:varchar(90)" json:"status"`
+	CreatedAt     time.Time  `json:"-"`
+	FormedAt      time.Time  `json:"-"`
+	ClosedAt      time.Time  `json:"-"`
+	UserID        uint       `json:"userId"`
+	Usr           User       `gorm:"foreignkey:UserID" json:"-"`
+	ModeratorUser User       `gorm:"foreignkey:ModeratorID;" json:"-"`
+	ModeratorID   uint       `json:"moderatorId"`
+	Alpinists     []Alpinist `gorm:"many2many:alpinist_expedition" json:"alpinists"`
 }
 
 type User struct {
-	ID          uint         `gorm:"primarykey;autoIncrement"`
-	Login       string       `gorm:"type:varchar(90); unique"`
-	Password    string       `gorm:"type:varchar(90)"`
-	ImageRef    string       `gorm:"type:varchar(90)"`
-	Expeditions []Expedition `gorm:"foreignkey:UserID;foreignkey:ModeratorID;"`
+	ID       uint   `gorm:"primarykey;autoIncrement"`
+	Login    string `gorm:"type:varchar(90); unique"`
+	Password string `gorm:"type:varchar(90)"`
+	ImageRef string `gorm:"type:varchar(90)"`
+	//Expeditions []Expedition `gorm:"foreignkey:UserID;foreignkey:ModeratorID;"`
 }
 
 type Alpinist struct {
