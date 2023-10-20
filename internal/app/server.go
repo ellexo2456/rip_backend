@@ -46,12 +46,12 @@ func (a *Application) StartServer() {
 // @Description  returns the page with an alpinists that had been filtered by a country
 // @Tags         alpinists
 // @Produce      json
-// @Param        name query string true "country name"
+// @Param        country query string true "country name"
 // @Success      200  {json}
 // @Failure      500  {json}
 // @Router       /{name} [get]
 func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
-	country := c.DefaultQuery("name", "")
+	country := c.DefaultQuery("country", "")
 
 	var foundAlpinists *[]ds.Alpinist
 	var err error
@@ -385,6 +385,7 @@ func (a *Application) addAlpinist(c *gin.Context) {
 			"status":  "fail",
 			"message": "invalid request body",
 		})
+		return
 	}
 
 	var err error
