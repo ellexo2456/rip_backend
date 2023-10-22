@@ -365,7 +365,19 @@ func (a *Application) filterExpeditionsByStatusAndFormedTime(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, *foundExpeditions)
+	draft, err := a.repository.GetDraft(ds.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"expedition": *foundExpeditions,
+		"draft":      draft.ID,
+	})
 }
 
 // addAlpinist godoc
@@ -505,7 +517,7 @@ func setTime(expedition *ds.Expedition) {
 	}
 }
 
-func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool) {
+func changeStatus(c *gin.Context, a *Application, checkStatus func(ds.Expedition, int) bool) {
 	var expedition ds.Expedition
 
 	if err := c.ShouldBindJSON(&expedition); err != nil {
@@ -516,10 +528,20 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool)
 		return
 	}
 
-	if !checkStatus(expedition.Status) {
+	expeditionWithStatus, err := a.repository.GetExpeditionById(expedition.ID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status":  "fail",
+			"message": "id is out of range",
+		})
+		return
+	}
+	expedition.UserID = expeditionWithStatus.UserID
+
+	if !checkStatus(expedition, ds.UserID) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "fail",
-			"message": "invalid status",
+			"message": "invalid status or user",
 		})
 		return
 	}
@@ -545,11 +567,11 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool)
 	//	})
 	//	return
 	//}
-	expeditionWithStatus, err := a.repository.GetExpeditionById(expedition.ID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
+
+	if expedition.Status == ds.StatusFormed && expeditionWithStatus.Status != ds.StatusDraft {
+		c.JSON(http.StatusForbidden, gin.H{
 			"status":  "fail",
-			"message": "id is out of range",
+			"message": "can`t form order that isn`t a draft",
 		})
 		return
 	}
@@ -574,15 +596,18 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(string) bool)
 	return
 }
 
-func checkUserStatus(status string) bool {
-	if status != ds.StatusDraft && status != ds.StatusFormed && status != ds.StatusDeleted {
+func checkUserStatus(expedition ds.Expedition, id int) bool {
+	if expedition.Status != ds.StatusDraft && expedition.Status != ds.StatusFormed && expedition.Status != ds.StatusDeleted {
+		return false
+	}
+	if expedition.UserID != uint(id) {
 		return false
 	}
 	return true
 }
 
-func checkModeratorStatus(status string) bool {
-	if status != ds.StatusCanceled && status != ds.StatusDenied {
+func checkModeratorStatus(expedition ds.Expedition, id int) bool {
+	if expedition.Status != ds.StatusCanceled && expedition.Status != ds.StatusDenied {
 		return false
 	}
 	return true

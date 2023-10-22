@@ -2,6 +2,7 @@ package repository
 
 import (
 	"RIpPeakBack/internal/app/ds"
+	"errors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -72,12 +73,23 @@ func (repository *Repository) UpdateAlpinist(alpinist ds.Alpinist) error {
 }
 
 func (repository *Repository) AddExpedition(expedition ds.Expedition) (uint, error) {
-	result := repository.db.Create(&expedition)
+	var existingExpedition ds.Expedition
+	result := repository.db.Where("status = ?", expedition.Status).First(&existingExpedition)
 
-	if err := result.Error; err != nil {
-		return 0, err
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		err := repository.db.Create(&expedition).Error
+		if err != nil {
+			return 0, err
+		}
+		return expedition.ID, nil
+	} else {
+		err := repository.db.Model(&existingExpedition).Association("Alpinists").Append(expedition.Alpinists)
+		if err != nil {
+			return 0, err
+		}
+		return existingExpedition.ID, nil
 	}
-	return expedition.ID, nil
+
 }
 
 func (repository *Repository) GetExpeditionById(id uint) (*ds.Expedition, error) {
@@ -175,4 +187,15 @@ func (repository *Repository) DeleteExpedition(expedition ds.Expedition) error {
 	}
 
 	return nil
+}
+
+func (repository *Repository) GetDraft(userID int) (ds.Expedition, error) {
+	var expedition ds.Expedition
+	err := repository.db.First(&expedition, "user_id = ? AND status = ?", userID, ds.StatusDraft).Error
+
+	if err != nil {
+		return ds.Expedition{}, err
+	}
+
+	return expedition, nil
 }
