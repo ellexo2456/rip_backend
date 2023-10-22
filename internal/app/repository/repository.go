@@ -153,8 +153,9 @@ func (repository *Repository) GetExpeditions() (*[]ds.Expedition, error) {
 	return expeditions, nil
 }
 
-func (repository *Repository) UpdateStatus(status string, id uint) error {
-	result := repository.db.Table("expeditions").Where("id = ?", id).Update("status", status)
+func (repository *Repository) UpdateStatus(expedition ds.Expedition) error {
+	//result := repository.db.Table("expeditions").Where("id = ?", expedition.ID).Updates(ds.Expedition{Status: expedition.Status, FormedAt: expedition.FormedAt, ClosedAt: expedition.ClosedAt})
+	result := repository.db.Table("expeditions").Where("id = ?", expedition.ID).Updates(expedition)
 
 	if err := result.Error; err != nil {
 		return err

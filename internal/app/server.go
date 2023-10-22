@@ -682,7 +682,7 @@ func setTime(expedition *ds.Expedition) {
 	if expedition.Status == ds.StatusFormed {
 		expedition.FormedAt = time.Now()
 	}
-	if expedition.Status == ds.StatusCanceled {
+	if expedition.Status == ds.StatusCanceled || expedition.Status == ds.StatusDeleted {
 		expedition.ClosedAt = time.Now()
 	}
 }
@@ -718,7 +718,8 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(ds.Expedition
 
 	expedition.UserID = ds.UserID
 	expedition.ModeratorID = ds.UserID
-
+	expedition.FormedAt = expeditionWithStatus.FormedAt
+	expedition.ClosedAt = expeditionWithStatus.ClosedAt
 	setTime(&expedition)
 
 	//id, err := strconv.Atoi(c.DefaultQuery("id", ""))
@@ -754,7 +755,7 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(ds.Expedition
 		return
 	}
 
-	if err := a.repository.UpdateStatus(expedition.Status, expedition.ID); err != nil {
+	if err := a.repository.UpdateStatus(expedition); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "fail",
 			"message": "can`t update status in db",
