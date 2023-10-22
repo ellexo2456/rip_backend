@@ -1,16 +1,23 @@
 package app
 
 import (
-	"RIpPeakBack/internal/app/ds"
-	"RIpPeakBack/internal/app/dsn"
+	"context"
 	"database/sql"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"log"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"log"
-	"net/http"
-	"strconv"
-	"time"
+	"github.com/minio/minio-go/v7"
+
+	"RIpPeakBack/internal/app/ds"
+	"RIpPeakBack/internal/app/dsn"
 )
 
 func (a *Application) StartServer() {
@@ -24,6 +31,8 @@ func (a *Application) StartServer() {
 	router.POST("/alpinist", a.addAlpinist)
 	router.POST("/alpinist/expedition", a.addAlpinistToLastExpedition)
 	router.PUT("/alpinist", a.modifyAlpinist)
+	router.MaxMultipartMemory = 8 << 20 // 8 MiB
+	router.POST("/alpinist/image", a.uploadImage)
 
 	router.PUT("/expedition", a.changeExpeditionInfoFields)
 	router.PUT("/expedition/status/user", a.changeExpeditionUserStatus)
@@ -506,6 +515,148 @@ func (a *Application) deleteExpedition(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// uploadImage godoc
+// @Summary      adds the alpinist
+// @Description  creates the alpinist and puts it to db
+// @Tags         alpinists, expeditions
+// @Accept       json
+// @Produce      json
+// @Success      200  {json}
+// @Failure      400  {json}
+// @Failure      500  {json}
+// @Router       /alpinist/image [post]
+func (a *Application) uploadImage(c *gin.Context) {
+	str_id := c.DefaultQuery("id", "")
+	id, err := strconv.Atoi(str_id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid id param",
+		})
+		return
+	}
+
+	if id < 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"status":  "fail",
+			"message": "negative id param",
+		})
+		return
+	}
+
+	alpinist, err := a.repository.GetAlpinistByID(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if alpinist.ImageName != "" {
+		if err = deleteObjectMinio(alpinist.ImageName); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  "fail",
+				"message": err.Error(),
+			})
+		}
+		return
+	}
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+	log.Println(file.Filename)
+
+	objectName := str_id + "/" + file.Filename
+	err = uploadToMinio(objectName, file, "")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+	filePathMinio := "http://" + os.Getenv("E3_ENDPOINT") + "/" + os.Getenv("E3_BUCKET") + "/" + objectName
+
+	alpinist.ImageName = objectName
+	alpinist.ImageRef = filePathMinio
+	if err = a.repository.UpdateAlpinist(*alpinist); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "uploaded",
+		"message": filePathMinio,
+	})
+}
+
+func deleteObjectMinio(objectName string) error {
+	minioClient, err := minio.New(os.Getenv("E3_ENDPOINT"), &minio.Options{
+		Creds:  credentials.NewStaticV4(os.Getenv("E3_ID"), os.Getenv("E3_SECRET"), ""),
+		Secure: false,
+	})
+	if err != nil {
+		return err
+	}
+
+	opts := minio.RemoveObjectOptions{
+		GovernanceBypass: true,
+	}
+
+	err = minioClient.RemoveObject(context.Background(), os.Getenv("E3_BUCKET"), objectName, opts)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func uploadToMinio(objectName string, file *multipart.FileHeader, contentType string) error {
+	// Initialize minio client object
+	//minioClient, err := minio.New("localhost:9001", "minio", "minio124", true)
+	minioClient, err := minio.New(os.Getenv("E3_ENDPOINT"), &minio.Options{
+		Creds:  credentials.NewStaticV4(os.Getenv("E3_ID"), os.Getenv("E3_SECRET"), ""),
+		Secure: false,
+	})
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	err = minioClient.MakeBucket(ctx, os.Getenv("E3_BUCKET"), minio.MakeBucketOptions{Region: "us-east-1"})
+	if err != nil {
+		exists, err := minioClient.BucketExists(ctx, os.Getenv("E3_BUCKET"))
+		if err == nil && exists {
+			log.Printf("Bucket:%s is already exist\n", os.Getenv("E3_BUCKET"))
+		} else {
+			return err
+		}
+	}
+	log.Printf("Successfully created bucket: %s\n", os.Getenv("E3_BUCKET"))
+
+	src, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	_, err = minioClient.PutObject(ctx, os.Getenv("E3_BUCKET"), objectName, src, -1, minio.PutObjectOptions{ContentType: contentType})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func setTime(expedition *ds.Expedition) {

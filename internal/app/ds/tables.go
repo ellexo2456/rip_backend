@@ -36,7 +36,7 @@ type Alpinist struct {
 	Lifetime    string       `gorm:"type:varchar(90)" json:"lifetime"`
 	Country     string       `gorm:"type:varchar(90)" json:"country"`
 	ImageRef    string       `gorm:"type:varchar(90)" json:"imageRef"`
-	BigImageRef string       `gorm:"type:varchar(90)" json:"bigImageRef"`
+	ImageName   string       `gorm:"type:varchar(90)" json:"-"`
 	Description string       `json:"description"`
 	Status      string       `gorm:"type:varchar(90)"`
 	Expeditions []Expedition `gorm:"many2many:alpinist_expedition"`
