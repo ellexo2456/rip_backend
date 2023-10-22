@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -150,6 +151,23 @@ func (a *Application) deleteAlpinist(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
 			"status":  "fail",
 			"message": "negative id param",
+		})
+		return
+	}
+
+	alpinist, err := a.repository.GetAlpinistByID(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if err = deleteObjectMinio(alpinist.ImageName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -518,18 +536,19 @@ func (a *Application) deleteExpedition(c *gin.Context) {
 }
 
 // uploadImage godoc
-// @Summary      adds the alpinist
-// @Description  creates the alpinist and puts it to db
-// @Tags         alpinists, expeditions
+// @Summary      uploads image
+// @Description  uploads image to minio and modifies image data in db
+// @Tags         alpinists
 // @Accept       json
 // @Produce      json
 // @Success      200  {json}
 // @Failure      400  {json}
+// @Failure      404  {json}
 // @Failure      500  {json}
 // @Router       /alpinist/image [post]
 func (a *Application) uploadImage(c *gin.Context) {
-	str_id := c.DefaultQuery("id", "")
-	id, err := strconv.Atoi(str_id)
+	strId := c.DefaultQuery("id", "")
+	id, err := strconv.Atoi(strId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "fail",
@@ -561,8 +580,8 @@ func (a *Application) uploadImage(c *gin.Context) {
 				"status":  "fail",
 				"message": err.Error(),
 			})
+			return
 		}
-		return
 	}
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -574,7 +593,7 @@ func (a *Application) uploadImage(c *gin.Context) {
 	}
 	log.Println(file.Filename)
 
-	objectName := str_id + "/" + file.Filename
+	objectName := strId + "/" + strings.ReplaceAll(file.Filename, " ", "")
 	err = uploadToMinio(objectName, file, "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
