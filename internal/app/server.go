@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"gorm.io/gorm"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -28,7 +30,7 @@ func (a *Application) StartServer() {
 
 	router.GET("/", a.filterAlpinistsByCountry)
 	router.GET("/alpinist/:id", a.getAlpinist)
-	router.POST("/alpinist/delete", a.deleteAlpinist)
+	router.DELETE("/alpinist/:id", a.deleteAlpinist)
 	router.POST("/alpinist", a.addAlpinist)
 	router.POST("/alpinist/expedition", a.addAlpinistToLastExpedition)
 	router.PUT("/alpinist", a.modifyAlpinist)
@@ -40,7 +42,7 @@ func (a *Application) StartServer() {
 	router.PUT("/expedition/status/moderator", a.changeExpeditionModeratorStatus)
 	router.GET("/expedition/filter", a.filterExpeditionsByStatusAndFormedTime)
 	router.GET("/expedition/:id", a.getExpedition)
-	router.DELETE("/expedition", a.deleteExpedition)
+	router.DELETE("/expedition/:id", a.deleteExpedition)
 
 	err := router.Run()
 	if err != nil {
@@ -137,9 +139,9 @@ func (a *Application) getAlpinist(c *gin.Context) {
 // @Failure      400  {json}
 // @Failure      404  {json}
 // @Failure      500  {json}
-// @Router       /alpinist/delete/{id} [post]
+// @Router       /alpinist/{id} [delete]
 func (a *Application) deleteAlpinist(c *gin.Context) {
-	id, err := strconv.Atoi(c.DefaultQuery("id", ""))
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "fail",
@@ -361,13 +363,13 @@ func (a *Application) filterExpeditionsByStatusAndFormedTime(c *gin.Context) {
 	startTime := c.DefaultQuery("startTime", "")
 	endTime := c.DefaultQuery("endTime", "")
 
-	if startTime != "" && endTime == "" || startTime == "" && endTime != "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"status":  "fail",
-			"message": "missing times parameter",
-		})
-		return
-	}
+	//if startTime != "" && endTime == "" || startTime == "" && endTime != "" {
+	//	c.JSON(http.StatusBadRequest, gin.H{
+	//		"status":  "fail",
+	//		"message": "missing times parameter",
+	//	})
+	//	return
+	//}
 
 	var foundExpeditions *[]ds.Expedition
 	var err error
@@ -380,6 +382,21 @@ func (a *Application) filterExpeditionsByStatusAndFormedTime(c *gin.Context) {
 	if status == "" && startTime != "" && endTime != "" {
 		foundExpeditions, err = a.repository.FilterByFormedTime(startTime, endTime)
 	}
+
+	if status == "" && startTime != "" && endTime == "" {
+		foundExpeditions, err = a.repository.FilterByFormedTime(startTime, time.Now().Add(8760*time.Hour).Format("2006-01-02"))
+	}
+	if status == "" && startTime == "" && endTime != "" {
+		foundExpeditions, err = a.repository.FilterByFormedTime(ds.MinDate, endTime)
+	}
+
+	if status != "" && startTime != "" && endTime == "" {
+		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(startTime, time.Now().Add(8760*time.Hour).Format("2006-01-02"), status)
+	}
+	if status != "" && startTime == "" && endTime != "" {
+		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(ds.MinDate, endTime, status)
+	}
+
 	if status != "" && startTime != "" && endTime != "" {
 		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(startTime, endTime, status)
 	}
@@ -394,11 +411,15 @@ func (a *Application) filterExpeditionsByStatusAndFormedTime(c *gin.Context) {
 
 	draft, err := a.repository.GetDraft(ds.UserID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "fail",
-			"message": err.Error(),
-		})
-		return
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			draft = ds.Expedition{}
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  "fail",
+				"message": err.Error(),
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusInternalServerError, gin.H{
@@ -498,7 +519,7 @@ func (a *Application) getExpedition(c *gin.Context) {
 // @Failure      500  {json}
 // @Router       /expedition/{id} [delete]
 func (a *Application) deleteExpedition(c *gin.Context) {
-	id, err := strconv.Atoi(c.DefaultQuery("id", ""))
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "fail",
@@ -514,16 +535,21 @@ func (a *Application) deleteExpedition(c *gin.Context) {
 		return
 	}
 
-	expedition, err := a.repository.GetExpeditionByID(id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "fail",
-			"message": err.Error(),
-		})
-		return
-	}
+	//expedition, err := a.repository.GetExpeditionByID(id)
+	//if err != nil {
+	//	c.JSON(http.StatusInternalServerError, gin.H{
+	//		"status":  "fail",
+	//		"message": err.Error(),
+	//	})
+	//	return
+	//}
 
-	err = a.repository.DeleteExpedition(*expedition)
+	expedition := ds.Expedition{
+		ID:       uint(id),
+		Status:   ds.StatusDeleted,
+		ClosedAt: time.Now(),
+	}
+	err = a.repository.DeleteExpedition(expedition)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "fail",

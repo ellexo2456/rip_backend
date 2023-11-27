@@ -114,7 +114,9 @@ func (repository *Repository) UpdateExpedition(expedition ds.Expedition) error {
 
 func (repository *Repository) FilterByStatus(status string) (*[]ds.Expedition, error) {
 	expedition := &[]ds.Expedition{}
-	err := repository.db.Find(expedition, "status = ?", status).Error
+	err := repository.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, login")
+	}).Find(expedition, "status = ?", status).Error
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +126,9 @@ func (repository *Repository) FilterByStatus(status string) (*[]ds.Expedition, e
 
 func (repository *Repository) FilterByFormedTime(startTime string, endTime string) (*[]ds.Expedition, error) {
 	expedition := &[]ds.Expedition{}
-	err := repository.db.Find(expedition, "formed_at BETWEEN ? AND ?", startTime, endTime).Error
+	err := repository.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, login")
+	}).Find(expedition, "status != 'удалено' AND formed_at BETWEEN ? AND ?", startTime, endTime).Error
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +138,9 @@ func (repository *Repository) FilterByFormedTime(startTime string, endTime strin
 
 func (repository *Repository) FilterByFormedTimeAndStatus(startTime string, endTime string, status string) (*[]ds.Expedition, error) {
 	expedition := &[]ds.Expedition{}
-	err := repository.db.Find(expedition, "status = ? AND formed_at BETWEEN ? AND ?", status, startTime, endTime).Error
+	err := repository.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, login")
+	}).Find(expedition, "status = ? AND formed_at BETWEEN ? AND ?", status, startTime, endTime).Error
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +151,9 @@ func (repository *Repository) FilterByFormedTimeAndStatus(startTime string, endT
 func (repository *Repository) GetExpeditions() (*[]ds.Expedition, error) {
 	expeditions := &[]ds.Expedition{}
 
-	err := repository.db.Find(expeditions).Error
+	err := repository.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id, login")
+	}).Find(expeditions, "status != 'удалено'").Error
 	if err != nil {
 		return nil, err
 	}
@@ -175,14 +183,14 @@ func (repository *Repository) GetExpeditionByID(expeditionID int) (*ds.Expeditio
 }
 
 func (repository *Repository) DeleteExpedition(expedition ds.Expedition) error {
-	for _, alpinist := range expedition.Alpinists {
-		err := repository.db.Model(&expedition).Association("Alpinists").Delete(&alpinist)
-		if err != nil {
-			return err
-		}
-	}
+	//for _, alpinist := range expedition.Alpinists {
+	//	err := repository.db.Model(&expedition).Association("Alpinists").Delete(&alpinist)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
-	err := repository.db.Delete(&expedition).Error
+	err := repository.db.Updates(ds.Expedition{ID: expedition.ID, Status: expedition.Status, ClosedAt: expedition.ClosedAt}).Error
 	if err != nil {
 		return err
 	}

@@ -15,8 +15,8 @@ import (
 
 // @license.name AS IS (NO WARRANTY)
 
-// @host 127.0.0.1E
-// @schemes Zhttp
+// @host 127.0.0.1
+// @schemes http
 // @BasePath /
 func main() {
 	log.Println("App Start")

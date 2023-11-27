@@ -15,18 +15,18 @@ type Expedition struct {
 	CreatedAt     time.Time  `json:"createdAt"`
 	FormedAt      time.Time  `json:"formedAt"`
 	ClosedAt      time.Time  `json:"closedAt"`
-	UserID        uint       `json:"userId"`
-	Usr           User       `gorm:"foreignkey:UserID" json:"-"`
-	ModeratorUser User       `gorm:"foreignkey:ModeratorID;" json:"-"`
-	ModeratorID   uint       `json:"moderatorId"`
-	Alpinists     []Alpinist `gorm:"many2many:alpinist_expedition" json:"alpinists"`
+	UserID        uint       `json:"-"`
+	Usr           *User      `gorm:"foreignkey:UserID" json:"user,omitempty"`
+	ModeratorUser *User      `gorm:"foreignkey:ModeratorID;" json:"moderator,omitempty"`
+	ModeratorID   uint       `json:"-"`
+	Alpinists     []Alpinist `gorm:"many2many:alpinist_expedition" json:"alpinists,omitempty"`
 }
 
 type User struct {
 	ID       uint   `gorm:"primarykey;autoIncrement"`
 	Login    string `gorm:"type:varchar(90); unique"`
-	Password string `gorm:"type:varchar(90)"`
-	ImageRef string `gorm:"type:varchar(90)"`
+	Password string `gorm:"type:varchar(90)" json:"password,omitempty"`
+	ImageRef string `gorm:"type:varchar(90)" json:"imageRef,omitempty"`
 	//Expeditions []Expedition `gorm:"foreignkey:UserID;foreignkey:ModeratorID;"`
 }
 
