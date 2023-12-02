@@ -78,11 +78,11 @@ func (a *Application) StartServer() {
 //	@Accept			json
 //	@Param			body	body		ds.Credentials	true	"user credentials"
 //	@Success		200		{object}	object{body=object{id=int}}
-//	@Failure		400		{object}	object{err=string}
-//	@Failure		401		{object}	object{err=string}
-//	@Failure		404		{object}	object{err=string}
-//	@Failure		409		{object}	object{err=string}
-//	@Failure		500		{object}	object{err=string}
+//	@Failure		400		{object} object{status=string, message=string}
+//	@Failure		401		{object} object{status=string, message=string}
+//	@Failure		404		{object} object{status=string, message=string}
+//	@Failure		409		{object} object{status=string, message=string}
+//	@Failure		500		{object} object{status=string, message=string}
 //	@Router			/auth/login [post]
 func (a *Application) Login(ctx *gin.Context) {
 	auth, err := a.auth(ctx)
@@ -216,14 +216,14 @@ func (a *Application) Logout(ctx *gin.Context) {
 //	@Accept			json
 //	@Param			body	body		ds.Credentials	true	"user credentials"
 //	@Success		200		{object}	object{body=object{id=int}}
-//	@Failure		400		{object}	object{err=string}
-//	@Failure		401		{object}	object{err=string}
-//	@Failure		409		{object}	object{err=string}
-//	@Failure		500		{object}	object{err=string}
+//	@Failure		400		{object} object{status=string, message=string}
+//	@Failure		401		{object} object{status=string, message=string}
+//	@Failure		409		{object} object{status=string, message=string}
+//	@Failure		500		{object} object{status=string, message=string}
 //	@Router			/auth/register [post]
 func (a *Application) Register(ctx *gin.Context) {
 	auth, err := a.auth(ctx)
-	if auth != true {
+	if auth == true {
 		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
 			"status":  "fail",
 			"message": "you must be unauthorised",
@@ -239,7 +239,6 @@ func (a *Application) Register(ctx *gin.Context) {
 		})
 		return
 	}
-
 	user.Email = strings.TrimSpace(user.Email)
 	if err = checkCredentials(ds.Credentials{Email: user.Email, Password: user.Password}); err != nil {
 		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
@@ -248,6 +247,7 @@ func (a *Application) Register(ctx *gin.Context) {
 		})
 		return
 	}
+	user.Role = ds.Usr
 
 	salt := make([]byte, 8)
 	rand.Read(salt)
@@ -258,6 +258,7 @@ func (a *Application) Register(ctx *gin.Context) {
 			"status":  "fail",
 			"message": err.Error(),
 		})
+		return
 	}
 
 	session := ds.Session{
@@ -346,8 +347,9 @@ func checkCredentials(cred ds.Credentials) error {
 // @Tags         alpinists
 // @Produce      json
 // @Param        country query string true "country name"
-// @Success      200  {json}
-// @Failure      500  {json}
+// @Success      200  {object} object{country=string, alpinists=[]ds.Alpinist}
+// @Failure      500  {object} object{status=string, message=string}
+// @Failure      500  {object} object{status=string, message=string}
 // @Router       /{name} [get]
 func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
 	country := c.DefaultQuery("country", "")
@@ -357,12 +359,18 @@ func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
 	if country == "" {
 		foundAlpinists, err = a.repository.GetActiveAlpinists()
 		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"err": err.Error(),
+			})
 			log.Println("Error with running\nServer down")
 			return
 		}
 	} else {
 		foundAlpinists, err = a.repository.FilterByCountry(country)
 		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"err": err.Error(),
+			})
 			log.Println("Error with running\nServer down")
 			return
 		}
@@ -380,9 +388,9 @@ func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
 // @Tags         alpinists
 // @Produce      json
 // @Param        id path uint true "id of alpinist"
-// @Success      200  {json}
-// @Failure      500  {json}
-// @Failure      400  {json}
+// @Success      200  {object} object{alpinist=ds.Alpinist}
+// @Failure      500  {object} object{status=string, message=string}
+// @Failure      400  {object} object{status=string, message=string}
 // @Router       /alpinist/{id} [get]
 func (a *Application) getAlpinist(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
@@ -423,9 +431,9 @@ func (a *Application) getAlpinist(c *gin.Context) {
 // @Produce      json
 // @Param        id query uint true "alpinists id"
 // @Success      204
-// @Failure      400  {json}
-// @Failure      404  {json}
-// @Failure      500  {json}
+// @Failure      400   {object} object{status=string, message=string}
+// @Failure      404   {object} object{status=string, message=string}
+// @Failure      500   {object} object{status=string, message=string}
 // @Router       /alpinist/{id} [delete]
 func (a *Application) deleteAlpinist(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
@@ -484,10 +492,10 @@ func (a *Application) deleteAlpinist(c *gin.Context) {
 // @Tags         alpinists, expeditions
 // @Accept       json
 // @Produce      json
-// @Success      200  {json}
-// @Failure      400  {json}
-// @Failure      404  {json}
-// @Failure      500  {json}
+// @Success      200  {json} object{id=int}
+// @Failure      400  {json} object{err=string}
+// @Failure      404  {json} object{err=string}
+// @Failure      500  {json} object{err=string}
 // @Router       /alpinist/expedition [post]
 func (a *Application) addAlpinistToLastExpedition(c *gin.Context) {
 	var expedition ds.Expedition
@@ -546,9 +554,9 @@ func (a *Application) addAlpinistToLastExpedition(c *gin.Context) {
 // @Tags         alpinists
 // @Accept       json
 // @Produce      json
-// @Failure      400  {json}
-// @Failure      500  {json}
-// @Success      200  {json}
+// @Failure      400  {object} object{status=string, message=string}
+// @Failure      500  {object} object{status=string, message=string}
+// @Success      200  {object} ds.Alpinist
 // @Router       /alpinist [put]
 func (a *Application) modifyAlpinist(c *gin.Context) {
 	var alpinist ds.Alpinist
@@ -577,10 +585,10 @@ func (a *Application) modifyAlpinist(c *gin.Context) {
 // @Tags         expeditions
 // @Accept       json
 // @Produce      json
-// @Failure      400  {json}
-// @Failure      404  {json}
-// @Failure      500  {json}
-// @Success      200  {json}
+// @Failure      400  {object} object{status=string, message=string}
+// @Failure      404  {object} object{status=string, message=string}
+// @Failure      500  {object} object{status=string, message=string}
+// @Success      200  {object} ds.Expedition
 // @Router       /expedition [put]
 func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
 	var expedition ds.Expedition
@@ -623,10 +631,10 @@ func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
 // @Tags         expeditions
 // @Accept       json
 // @Success      204
-// @Failure      400  {json}
-// @Failure      403  {json}
-// @Failure      404  {json}
-// @Failure      500  {json}
+// @Failure      400   {object} object{status=string, message=string}
+// @Failure      403   {object} object{status=string, message=string}
+// @Failure      404   {object} object{status=string, message=string}
+// @Failure      500   {object} object{status=string, message=string}
 // @Router       /expedition/status/user/{id} [put]
 func (a *Application) FormExpedition(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
@@ -661,10 +669,10 @@ func (a *Application) FormExpedition(c *gin.Context) {
 // @Tags         expeditions
 // @Accept       json
 // @Success      204
-// @Failure      400  {json}
-// @Failure      403  {json}
-// @Failure      404  {json}
-// @Failure      500  {json}
+// @Failure      400   {object} object{status=string, message=string}
+// @Failure      403   {object} object{status=string, message=string}
+// @Failure      404   {object} object{status=string, message=string}
+// @Failure      500   {object} object{status=string, message=string}
 // @Router       /expedition/{id}/status [put]
 func (a *Application) changeExpeditionModeratorStatus(c *gin.Context) {
 	var expedition ds.Expedition
@@ -706,9 +714,9 @@ func (a *Application) changeExpeditionModeratorStatus(c *gin.Context) {
 // @Param        endTime query string false "start time of interval for filter to formed time"
 // @Tags         expeditions
 // @Produce      json
-// @Success      200  {json}
-// @Failure      400  {json}
-// @Failure      500  {json}
+// @Success      200  {object} object{draft=int, expedition=[]ds.Expedition}
+// @Failure      400  {object} object{status=string, message=string}
+// @Failure      500  {object} object{status=string, message=string}
 // @Router       /expedition/filter/{status} [get]
 func (a *Application) filterExpeditionsByStatusAndFormedTime(c *gin.Context) {
 	status := c.DefaultQuery("status", "")
@@ -796,9 +804,9 @@ func (a *Application) filterExpeditionsByStatusAndFormedTime(c *gin.Context) {
 // @Tags         alpinists, expeditions
 // @Accept       json
 // @Produce      json
-// @Success      200  {json}
-// @Failure      400  {json}
-// @Failure      500  {json}
+// @Success      200  {object} object{id=int}
+// @Failure      400  {object} object{status=string, message=string}
+// @Failure      500  {object} object{status=string, message=string}
 // @Router       /alpinist [post]
 func (a *Application) addAlpinist(c *gin.Context) {
 	var alpinist ds.Alpinist
@@ -831,10 +839,10 @@ func (a *Application) addAlpinist(c *gin.Context) {
 // @Tags         expeditions
 // @Produce      json
 // @Param        id path uint true "id of expedition"
-// @Success      200  {json}
-// @Failure      500  {json}
-// @Failure      400  {json}
-// @Failure      404  {json}
+// @Success      200  {object} object{expedition=ds.Expedition}
+// @Failure      500  {object} object{status=string, message=string}
+// @Failure      400  {object} object{status=string, message=string}
+// @Failure      404  {object} object{status=string, message=string}
 // @Router       /expedition/{id} [get]
 func (a *Application) getExpedition(c *gin.Context) {
 	expeditionID, err := strconv.Atoi(c.Param("id"))
@@ -875,10 +883,10 @@ func (a *Application) getExpedition(c *gin.Context) {
 // @Produce      json
 // @Param        id query uint true "expedition id"
 // @Success      204
-// @Failure      500  {json}
-// @Failure      400  {json}
-// @Failure      404  {json}
-// @Failure      500  {json}
+// @Failure      500   {object} object{status=string, message=string}
+// @Failure      400   {object} object{status=string, message=string}
+// @Failure      404   {object} object{status=string, message=string}
+// @Failure      500   {object} object{status=string, message=string}
 // @Router       /expedition/{id} [delete]
 func (a *Application) deleteExpedition(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
@@ -929,10 +937,10 @@ func (a *Application) deleteExpedition(c *gin.Context) {
 // @Tags         alpinists
 // @Accept       json
 // @Produce      json
-// @Success      200  {json}
-// @Failure      400  {json}
-// @Failure      404  {json}
-// @Failure      500  {json}
+// @Success      200  {object} object{status=string, message=string}
+// @Failure      400  {object} object{status=string, message=string}
+// @Failure      404  {object} object{status=string, message=string}
+// @Failure      500  {object} object{status=string, message=string}
 // @Router       /alpinist/image [post]
 func (a *Application) uploadImage(c *gin.Context) {
 	strId := c.DefaultQuery("id", "")

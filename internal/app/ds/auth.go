@@ -14,7 +14,7 @@ type Session struct {
 	Token     string    `json:"token"`
 	ExpiresAt time.Time `json:"expiresAt"`
 	UserID    int       `json:"-"`
-	Role      Role      `sql:"type:string;" json:"-"`
+	Role      Role      `json:"-"`
 }
 
 type Credentials struct {

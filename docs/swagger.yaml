@@ -2,8 +2,6 @@ basePath: /
 definitions:
   ds.Alpinist:
     properties:
-      bigImageRef:
-        type: string
       country:
         type: string
       description:
@@ -23,26 +21,68 @@ definitions:
       status:
         type: string
     type: object
+  ds.Credentials:
+    properties:
+      email:
+        type: string
+      password:
+        items:
+          type: integer
+        type: array
+    type: object
   ds.Expedition:
     properties:
       alpinists:
         items:
           $ref: '#/definitions/ds.Alpinist'
         type: array
-      description:
+      closedAt:
+        type: string
+      createdAt:
+        type: string
+      formedAt:
         type: string
       id:
         type: integer
+      moderator:
+        $ref: '#/definitions/ds.User'
       name:
-        type: string
-      start_date:
         type: string
       status:
         type: string
-      userID:
-        type: integer
+      user:
+        $ref: '#/definitions/ds.User'
       year:
         type: integer
+    type: object
+  ds.Role:
+    enum:
+    - 0
+    - 1
+    - 2
+    type: integer
+    x-enum-comments:
+      Guest: "0"
+      Moderator: "2"
+      Usr: "1"
+    x-enum-varnames:
+    - Guest
+    - Usr
+    - Moderator
+  ds.User:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      imageRef:
+        type: string
+      password:
+        items:
+          type: integer
+        type: array
+      role:
+        $ref: '#/definitions/ds.Role'
     type: object
 host: 127.0.0.1
 info:
@@ -56,254 +96,732 @@ info:
   title: RIpPeakBack
   version: "1.0"
 paths:
-  /:
+  /{name}:
     get:
-      description: load alpinists from db and returns the main page with them as a
-        context
+      description: returns the page with an alpinists that had been filtered by a
+        country
+      parameters:
+      - description: country name
+        in: query
+        name: country
+        required: true
+        type: string
       produces:
-        - text/html
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/ds.Alpinist'
-            type: array
+            properties:
+              ' alpinists':
+                items:
+                  $ref: '#/definitions/ds.Alpinist'
+                type: array
+              country:
+                type: string
+            type: object
         "500":
-          description: can`t get the alpinists list
+          description: Internal Server Error
           schema:
-            type: string
-      summary: returns the main page
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: returns the page with a filtered alpinists
       tags:
-        - alpinists
-  /alpinist/{id}:
-    get:
-      description: returns the page of the alpinist by the provided id
-      parameters:
-        - description: id os alpinist
-          in: path
-          name: id
-          required: true
-          type: integer
+      - alpinists
+  /alpinist:
+    post:
+      consumes:
+      - application/json
+      description: creates the alpinist and puts it to db
       produces:
-        - text/html
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              id:
+                type: integer
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: adds the alpinist
+      tags:
+      - alpinists
+      - expeditions
+    put:
+      consumes:
+      - application/json
+      description: modify an alpinist data
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/ds.Alpinist'
         "400":
-          description: negative parameter id
+          description: Bad Request
           schema:
-            type: string
-        "404":
-          description: id is out of rage
-          schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
         "500":
-          description: can`t get the alpinists list
+          description: Internal Server Error
           schema:
-            type: string
-      summary: returns the page of the alpinist
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: modify an alpinist
       tags:
-        - alpinists
-  /alpinist/delete/{id}:
-    get:
+      - alpinists
+  /alpinist/{id}:
+    delete:
       description: deletes an alpinist by a given id and returns the page without
         it
       parameters:
-        - description: alpinists id
-          in: query
-          name: id
-          required: true
-          type: integer
+      - description: alpinists id
+        in: query
+        name: id
+        required: true
+        type: integer
       produces:
-        - text/html
+      - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/ds.Alpinist'
-            type: array
+        "204":
+          description: No Content
         "400":
-          description: negative parameter id
+          description: Bad Request
           schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
         "500":
-          description: can`t delete alpinist in db
+          description: Internal Server Error
           schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
       summary: deletes an alpinist
       tags:
-        - alpinists
-  /alpinist/filter/{name}:
+      - alpinists
     get:
-      description: returns the page with an alpinists that had been filtered by a
-        country
+      description: returns the page of the alpinist by the provided id
       parameters:
-        - description: country name
-          in: query
-          name: name
-          required: true
-          type: string
+      - description: id of alpinist
+        in: path
+        name: id
+        required: true
+        type: integer
       produces:
-        - text/html
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/ds.Alpinist'
-            type: array
-        "500":
-          description: can`t get the alpinists list
+            properties:
+              alpinist:
+                $ref: '#/definitions/ds.Alpinist'
+            type: object
+        "400":
+          description: Bad Request
           schema:
-            type: string
-      summary: returns the page with a filtered alpinists
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: returns the page of the alpinist
       tags:
-        - alpinists
-  /expedition:
+      - alpinists
+  /alpinist/expedition:
     post:
       consumes:
-        - application/json
+      - application/json
       description: creates expedition and adds an alpinist to
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/ds.Expedition'
+            type: json
         "400":
-          description: negative id
+          description: Bad Request
           schema:
-            type: string
+            type: json
         "404":
-          description: id is out of range
+          description: Not Found
           schema:
-            type: string
+            type: json
         "500":
-          description: can`t post expedition into db
+          description: Internal Server Error
           schema:
-            type: string
+            type: json
       summary: adds an alpinist to expedition
       tags:
-        - alpinists
-        - expeditions
+      - alpinists
+      - expeditions
+  /alpinist/image:
+    post:
+      consumes:
+      - application/json
+      description: uploads image to minio and modifies image data in db
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: uploads image
+      tags:
+      - alpinists
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: create user session and put it into cookie
+      parameters:
+      - description: user credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ds.Credentials'
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              body:
+                properties:
+                  id:
+                    type: integer
+                type: object
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: login user
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: delete current session and nullify cookie
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              err:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              err:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              err:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              err:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              err:
+                type: string
+            type: object
+      summary: logout user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: add new user to db and return it id
+      parameters:
+      - description: user credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/ds.Credentials'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              body:
+                properties:
+                  id:
+                    type: integer
+                type: object
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: register user
+      tags:
+      - auth
+  /expedition:
     put:
       consumes:
-        - application/json
+      - application/json
       description: changes an expedition information fields that can be changed by
         a user
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/ds.Expedition'
         "400":
-          description: negative id
+          description: Bad Request
           schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
         "404":
-          description: id is out of range
+          description: Not Found
           schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
         "500":
-          description: can`t post expedition into db
+          description: Internal Server Error
           schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
       summary: changes an expedition
       tags:
-        - expeditions
-  /expedition/filter/{name}:
-    get:
-      description: returns the page with an expeditions that had been filtered by
-        a status
+      - expeditions
+  /expedition/{id}:
+    delete:
+      description: deletes an expedition from db
       parameters:
-        - description: new status of the expedition
-          in: query
-          name: name
-          required: true
-          type: string
+      - description: expedition id
+        in: query
+        name: id
+        required: true
+        type: integer
       produces:
-        - text/html
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: deletes an expedition
+      tags:
+      - expeditions
+    get:
+      description: returns the expedition by its id
+      parameters:
+      - description: id of expedition
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/ds.Expedition'
-            type: array
-        "500":
-          description: error with db
+            properties:
+              expedition:
+                $ref: '#/definitions/ds.Expedition'
+            type: object
+        "400":
+          description: Bad Request
           schema:
-            type: string
-      summary: returns the page with a filtered expeditions
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: returns the expedition by its id
       tags:
-        - expeditions
-  /expedition/status/moderator/{id}:
+      - expeditions
+  /expedition/{id}/status:
     put:
       consumes:
-        - application/json
+      - application/json
       description: changes an expedition status with that one witch can be changed
         by a moderator
-      parameters:
-        - description: expedition id
-          in: query
-          name: id
-          required: true
-          type: integer
       responses:
         "204":
           description: No Content
         "400":
-          description: negative id
+          description: Bad Request
           schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
         "404":
-          description: id is out of range
+          description: Not Found
           schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
         "500":
-          description: can`t update status in db
+          description: Internal Server Error
           schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
       summary: changes an expedition status
       tags:
-        - expeditions
+      - expeditions
+  /expedition/filter/{status}:
+    get:
+      description: returns the page with an expeditions that had been filtered by
+        a status or/and formed time
+      parameters:
+      - description: new status of the expedition
+        in: query
+        name: status
+        type: string
+      - description: start time of interval for filter to formed time
+        in: query
+        name: startTime
+        type: string
+      - description: start time of interval for filter to formed time
+        in: query
+        name: endTime
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              ' expedition':
+                items:
+                  $ref: '#/definitions/ds.Expedition'
+                type: array
+              draft:
+                type: integer
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: returns the page with a filtered expeditions
+      tags:
+      - expeditions
   /expedition/status/user/{id}:
     put:
       consumes:
-        - application/json
+      - application/json
       description: changes an expedition status with that one witch can be changed
         by a user
-      parameters:
-        - description: expedition id
-          in: query
-          name: id
-          required: true
-          type: integer
       responses:
         "204":
           description: No Content
         "400":
-          description: negative id
+          description: Bad Request
           schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
         "404":
-          description: id is out of range
+          description: Not Found
           schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
         "500":
-          description: can`t update status in db
+          description: Internal Server Error
           schema:
-            type: string
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
       summary: changes an expedition status
       tags:
-        - expeditions
+      - expeditions
 schemes:
-  - Zhttp
+- http
 swagger: "2.0"

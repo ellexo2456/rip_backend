@@ -22,40 +22,292 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/": {
-            "get": {
-                "description": "load alpinists from db and returns the main page with them as a context",
+        "/alpinist": {
+            "put": {
+                "description": "modify an alpinist data",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
-                    "text/html"
+                    "application/json"
                 ],
                 "tags": [
                     "alpinists"
                 ],
-                "summary": "returns the main page",
+                "summary": "modify an alpinist",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/ds.Alpinist"
+                            "$ref": "#/definitions/ds.Alpinist"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
                             }
                         }
                     },
                     "500": {
-                        "description": "can` + "`" + `t get the alpinists list",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "creates the alpinist and puts it to db",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "alpinists",
+                    "expeditions"
+                ],
+                "summary": "adds the alpinist",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     }
                 }
             }
         },
-        "/alpinist/delete/{id}": {
+        "/alpinist/expedition": {
+            "post": {
+                "description": "creates expedition and adds an alpinist to",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "alpinists",
+                    "expeditions"
+                ],
+                "summary": "adds an alpinist to expedition",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "json"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "json"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "json"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "json"
+                        }
+                    }
+                }
+            }
+        },
+        "/alpinist/image": {
+            "post": {
+                "description": "uploads image to minio and modifies image data in db",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "alpinists"
+                ],
+                "summary": "uploads image",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/alpinist/{id}": {
             "get": {
+                "description": "returns the page of the alpinist by the provided id",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "alpinists"
+                ],
+                "summary": "returns the page of the alpinist",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id of alpinist",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "alpinist": {
+                                    "$ref": "#/definitions/ds.Alpinist"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
                 "description": "deletes an alpinist by a given id and returns the page without it",
                 "produces": [
-                    "text/html"
+                    "application/json"
                 ],
                 "tags": [
                     "alpinists"
@@ -71,110 +323,329 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/ds.Alpinist"
-                            }
-                        }
+                    "204": {
+                        "description": "No Content"
                     },
                     "400": {
-                        "description": "negative parameter id",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "can` + "`" + `t delete alpinist in db",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/alpinist/filter/{name}": {
-            "get": {
-                "description": "returns the page with an alpinists that had been filtered by a country",
-                "produces": [
-                    "text/html"
-                ],
-                "tags": [
-                    "alpinists"
-                ],
-                "summary": "returns the page with a filtered alpinists",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "country name",
-                        "name": "name",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/ds.Alpinist"
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
                             }
-                        }
-                    },
-                    "500": {
-                        "description": "can` + "`" + `t get the alpinists list",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/alpinist/{id}": {
-            "get": {
-                "description": "returns the page of the alpinist by the provided id",
-                "produces": [
-                    "text/html"
-                ],
-                "tags": [
-                    "alpinists"
-                ],
-                "summary": "returns the page of the alpinist",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "id os alpinist",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ds.Alpinist"
-                        }
-                    },
-                    "400": {
-                        "description": "negative parameter id",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "404": {
-                        "description": "id is out of rage",
+                        "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "500": {
-                        "description": "can` + "`" + `t get the alpinists list",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "create user session and put it into cookie",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "login user",
+                "parameters": [
+                    {
+                        "description": "user credentials",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ds.Credentials"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "body": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "description": "delete current session and nullify cookie",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "logout user",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "err": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "err": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "err": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "err": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "err": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/register": {
+            "post": {
+                "description": "add new user to db and return it id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "register user",
+                "parameters": [
+                    {
+                        "description": "user credentials",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ds.Credentials"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "body": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     }
                 }
@@ -201,71 +672,55 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "negative id",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "404": {
-                        "description": "id is out of range",
+                        "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "500": {
-                        "description": "can` + "`" + `t post expedition into db",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "creates expedition and adds an alpinist to",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "alpinists",
-                    "expeditions"
-                ],
-                "summary": "adds an alpinist to expedition",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/ds.Expedition"
-                        }
-                    },
-                    "400": {
-                        "description": "negative id",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "id is out of range",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "can` + "`" + `t post expedition into db",
-                        "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     }
                 }
             }
         },
-        "/expedition/filter/{name}": {
+        "/expedition/filter/{status}": {
             "get": {
-                "description": "returns the page with an expeditions that had been filtered by a status",
+                "description": "returns the page with an expeditions that had been filtered by a status or/and formed time",
                 "produces": [
-                    "text/html"
+                    "application/json"
                 ],
                 "tags": [
                     "expeditions"
@@ -275,69 +730,66 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "new status of the expedition",
-                        "name": "name",
-                        "in": "query",
-                        "required": true
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "start time of interval for filter to formed time",
+                        "name": "startTime",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "start time of interval for filter to formed time",
+                        "name": "endTime",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/ds.Expedition"
+                            "type": "object",
+                            "properties": {
+                                " expedition": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/ds.Expedition"
+                                    }
+                                },
+                                "draft": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
                             }
                         }
                     },
                     "500": {
-                        "description": "error with db",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/expedition/status/moderator/{id}": {
-            "put": {
-                "description": "changes an expedition status with that one witch can be changed by a moderator",
-                "consumes": [
-                    "application/json"
-                ],
-                "tags": [
-                    "expeditions"
-                ],
-                "summary": "changes an expedition status",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "expedition id",
-                        "name": "id",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "negative id",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "id is out of range",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "can` + "`" + `t update status in db",
-                        "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     }
                 }
@@ -353,6 +805,153 @@ const docTemplate = `{
                     "expeditions"
                 ],
                 "summary": "changes an expedition status",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/expedition/{id}": {
+            "get": {
+                "description": "returns the expedition by its id",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "expeditions"
+                ],
+                "summary": "returns the expedition by its id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id of expedition",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "expedition": {
+                                    "$ref": "#/definitions/ds.Expedition"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "deletes an expedition from db",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "expeditions"
+                ],
+                "summary": "deletes an expedition",
                 "parameters": [
                     {
                         "type": "integer",
@@ -367,21 +966,172 @@ const docTemplate = `{
                         "description": "No Content"
                     },
                     "400": {
-                        "description": "negative id",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "404": {
-                        "description": "id is out of range",
+                        "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     },
                     "500": {
-                        "description": "can` + "`" + `t update status in db",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/expedition/{id}/status": {
+            "put": {
+                "description": "changes an expedition status with that one witch can be changed by a moderator",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "expeditions"
+                ],
+                "summary": "changes an expedition status",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/{name}": {
+            "get": {
+                "description": "returns the page with an alpinists that had been filtered by a country",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "alpinists"
+                ],
+                "summary": "returns the page with a filtered alpinists",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "country name",
+                        "name": "country",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " alpinists": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/ds.Alpinist"
+                                    }
+                                },
+                                "country": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     }
                 }
@@ -392,9 +1142,6 @@ const docTemplate = `{
         "ds.Alpinist": {
             "type": "object",
             "properties": {
-                "bigImageRef": {
-                    "type": "string"
-                },
                 "country": {
                     "type": "string"
                 },
@@ -424,6 +1171,20 @@ const docTemplate = `{
                 }
             }
         },
+        "ds.Credentials": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "ds.Expedition": {
             "type": "object",
             "properties": {
@@ -433,26 +1194,73 @@ const docTemplate = `{
                         "$ref": "#/definitions/ds.Alpinist"
                     }
                 },
-                "description": {
+                "closedAt": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "formedAt": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "name": {
-                    "type": "string"
+                "moderator": {
+                    "$ref": "#/definitions/ds.User"
                 },
-                "start_date": {
+                "name": {
                     "type": "string"
                 },
                 "status": {
                     "type": "string"
                 },
-                "userID": {
-                    "type": "integer"
+                "user": {
+                    "$ref": "#/definitions/ds.User"
                 },
                 "year": {
                     "type": "integer"
+                }
+            }
+        },
+        "ds.Role": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-comments": {
+                "Guest": "0",
+                "Moderator": "2",
+                "Usr": "1"
+            },
+            "x-enum-varnames": [
+                "Guest",
+                "Usr",
+                "Moderator"
+            ]
+        },
+        "ds.User": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "imageRef": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "role": {
+                    "$ref": "#/definitions/ds.Role"
                 }
             }
         }
@@ -464,7 +1272,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "127.0.0.1",
 	BasePath:         "/",
-	Schemes:          []string{"Zhttp"},
+	Schemes:          []string{"http"},
 	Title:            "RIpPeakBack",
 	Description:      "rip course project about alpinists and their expeditions",
 	InfoInstanceName: "swagger",

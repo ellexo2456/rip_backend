@@ -27,7 +27,7 @@ type User struct {
 	Email    string `gorm:"type:varchar(90); unique"`
 	Password []byte `gorm:"type:bytea" json:"password,omitempty"`
 	ImageRef string `gorm:"type:varchar(90)" json:"imageRef,omitempty"Z`
-	Role     Role   `gorm:"type:text;" json:"role,omitempty"`
+	Role     Role   `gorm:"type:int;" json:"role,omitempty"`
 	//Expeditions []Expedition `gorm:"foreignkey:UserID;foreignkey:ModeratorID;"`
 }
 
