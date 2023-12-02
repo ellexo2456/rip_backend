@@ -22,10 +22,10 @@ func New(dsn string) (*Repository, error) {
 	}, nil
 }
 
-func (repository *Repository) GetAlpinistByID(id int) (*ds.Alpinist, error) {
+func (r *Repository) GetAlpinistByID(id int) (*ds.Alpinist, error) {
 	alpinist := &ds.Alpinist{}
 
-	err := repository.db.Preload("Expeditions").First(alpinist, "id = ?", id).Error
+	err := r.db.Preload("Expeditions").First(alpinist, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -33,9 +33,9 @@ func (repository *Repository) GetAlpinistByID(id int) (*ds.Alpinist, error) {
 	return alpinist, nil
 }
 
-func (repository *Repository) GetActiveAlpinists() (*[]ds.Alpinist, error) {
+func (r *Repository) GetActiveAlpinists() (*[]ds.Alpinist, error) {
 	alpinists := &[]ds.Alpinist{}
-	err := repository.db.Find(alpinists, "status = ?", "действует").Error
+	err := r.db.Find(alpinists, "status = ?", "действует").Error
 
 	if err != nil {
 		return nil, err
@@ -44,9 +44,9 @@ func (repository *Repository) GetActiveAlpinists() (*[]ds.Alpinist, error) {
 	return alpinists, nil
 }
 
-func (repository *Repository) FilterByCountry(country string) (*[]ds.Alpinist, error) {
+func (r *Repository) FilterByCountry(country string) (*[]ds.Alpinist, error) {
 	alpinists := &[]ds.Alpinist{}
-	err := repository.db.Find(alpinists, "country = ?", country).Error
+	err := r.db.Find(alpinists, "country = ?", country).Error
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +54,8 @@ func (repository *Repository) FilterByCountry(country string) (*[]ds.Alpinist, e
 	return alpinists, nil
 }
 
-func (repository *Repository) AddAlpinist(alpinist ds.Alpinist) (uint, error) {
-	result := repository.db.Create(&alpinist)
+func (r *Repository) AddAlpinist(alpinist ds.Alpinist) (uint, error) {
+	result := r.db.Create(&alpinist)
 
 	if err := result.Error; err != nil {
 		return 0, err
@@ -63,8 +63,8 @@ func (repository *Repository) AddAlpinist(alpinist ds.Alpinist) (uint, error) {
 	return alpinist.ID, nil
 }
 
-func (repository *Repository) UpdateAlpinist(alpinist ds.Alpinist) error {
-	result := repository.db.Save(&alpinist)
+func (r *Repository) UpdateAlpinist(alpinist ds.Alpinist) error {
+	result := r.db.Save(&alpinist)
 
 	if err := result.Error; err != nil {
 		return err
@@ -72,18 +72,18 @@ func (repository *Repository) UpdateAlpinist(alpinist ds.Alpinist) error {
 	return nil
 }
 
-func (repository *Repository) AddExpedition(expedition ds.Expedition) (uint, error) {
+func (r *Repository) AddExpedition(expedition ds.Expedition) (uint, error) {
 	var existingExpedition ds.Expedition
-	result := repository.db.Where("status = ?", expedition.Status).First(&existingExpedition)
+	result := r.db.Where("status = ?", expedition.Status).First(&existingExpedition)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		err := repository.db.Create(&expedition).Error
+		err := r.db.Create(&expedition).Error
 		if err != nil {
 			return 0, err
 		}
 		return expedition.ID, nil
 	} else {
-		err := repository.db.Model(&existingExpedition).Association("Alpinists").Append(expedition.Alpinists)
+		err := r.db.Model(&existingExpedition).Association("Alpinists").Append(expedition.Alpinists)
 		if err != nil {
 			return 0, err
 		}
@@ -92,10 +92,10 @@ func (repository *Repository) AddExpedition(expedition ds.Expedition) (uint, err
 
 }
 
-func (repository *Repository) GetExpeditionById(id uint) (*ds.Expedition, error) {
+func (r *Repository) GetExpeditionById(id uint) (*ds.Expedition, error) {
 	expedition := &ds.Expedition{}
 
-	err := repository.db.First(expedition, "id = ?", id).Error
+	err := r.db.First(expedition, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -103,8 +103,8 @@ func (repository *Repository) GetExpeditionById(id uint) (*ds.Expedition, error)
 	return expedition, nil
 }
 
-func (repository *Repository) UpdateExpedition(expedition ds.Expedition) error {
-	result := repository.db.Save(&expedition)
+func (r *Repository) UpdateExpedition(expedition ds.Expedition) error {
+	result := r.db.Save(&expedition)
 
 	if err := result.Error; err != nil {
 		return err
@@ -112,11 +112,20 @@ func (repository *Repository) UpdateExpedition(expedition ds.Expedition) error {
 	return nil
 }
 
-func (repository *Repository) FilterByStatus(status string) (*[]ds.Expedition, error) {
+func (r *Repository) FilterByStatus(status string, sc ds.SessionContext) (*[]ds.Expedition, error) {
 	expedition := &[]ds.Expedition{}
-	err := repository.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, login")
-	}).Find(expedition, "status = ?", status).Error
+
+	var err error
+	if sc.Role == ds.Usr {
+		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, login")
+		}).Find(expedition, "user_id = ? AND status = ?", sc.UserID, status).Error
+	} else {
+		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, login")
+		}).Find(expedition, "status = ?", status).Error
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -124,11 +133,20 @@ func (repository *Repository) FilterByStatus(status string) (*[]ds.Expedition, e
 	return expedition, nil
 }
 
-func (repository *Repository) FilterByFormedTime(startTime string, endTime string) (*[]ds.Expedition, error) {
+func (r *Repository) FilterByFormedTime(startTime string, endTime string, sc ds.SessionContext) (*[]ds.Expedition, error) {
 	expedition := &[]ds.Expedition{}
-	err := repository.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, login")
-	}).Find(expedition, "status != 'удалено' AND formed_at BETWEEN ? AND ?", startTime, endTime).Error
+
+	var err error
+	if sc.Role == ds.Usr {
+		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, login")
+		}).Find(expedition, "user_id = ? AND status != 'удалено' AND formed_at BETWEEN ? AND ?", sc.UserID, startTime, endTime).Error
+	} else {
+		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, login")
+		}).Find(expedition, "status != 'удалено' AND formed_at BETWEEN ? AND ?", startTime, endTime).Error
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -136,11 +154,19 @@ func (repository *Repository) FilterByFormedTime(startTime string, endTime strin
 	return expedition, nil
 }
 
-func (repository *Repository) FilterByFormedTimeAndStatus(startTime string, endTime string, status string) (*[]ds.Expedition, error) {
+func (r *Repository) FilterByFormedTimeAndStatus(startTime string, endTime string, status string, sc ds.SessionContext) (*[]ds.Expedition, error) {
 	expedition := &[]ds.Expedition{}
-	err := repository.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, login")
-	}).Find(expedition, "status = ? AND formed_at BETWEEN ? AND ?", status, startTime, endTime).Error
+
+	var err error
+	if sc.Role == ds.Usr {
+		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, login")
+		}).Find(expedition, "user_id = ? AND status = ? AND formed_at BETWEEN ? AND ?", sc.UserID, status, startTime, endTime).Error
+	} else {
+		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, login")
+		}).Find(expedition, "status = ? AND formed_at BETWEEN ? AND ?", status, startTime, endTime).Error
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -148,12 +174,20 @@ func (repository *Repository) FilterByFormedTimeAndStatus(startTime string, endT
 	return expedition, nil
 }
 
-func (repository *Repository) GetExpeditions() (*[]ds.Expedition, error) {
+func (r *Repository) GetExpeditions(sc ds.SessionContext) (*[]ds.Expedition, error) {
 	expeditions := &[]ds.Expedition{}
 
-	err := repository.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id, login")
-	}).Find(expeditions, "status != 'удалено'").Error
+	var err error
+	if sc.Role == ds.Usr {
+		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, login")
+		}).Find(expeditions, "status != 'удалено' AND user_id = ?", sc.UserID).Error
+	} else {
+		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, login")
+		}).Find(expeditions, "status != 'удалено'").Error
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -161,9 +195,9 @@ func (repository *Repository) GetExpeditions() (*[]ds.Expedition, error) {
 	return expeditions, nil
 }
 
-func (repository *Repository) UpdateStatus(expedition ds.Expedition) error {
+func (r *Repository) UpdateStatus(expedition ds.Expedition) error {
 	//result := repository.db.Table("expeditions").Where("id = ?", expedition.ID).Updates(ds.Expedition{Status: expedition.Status, FormedAt: expedition.FormedAt, ClosedAt: expedition.ClosedAt})
-	result := repository.db.Table("expeditions").Where("id = ?", expedition.ID).Updates(expedition)
+	result := r.db.Table("expeditions").Where("id = ?", expedition.ID).Updates(expedition)
 
 	if err := result.Error; err != nil {
 		return err
@@ -171,10 +205,10 @@ func (repository *Repository) UpdateStatus(expedition ds.Expedition) error {
 	return nil
 }
 
-func (repository *Repository) GetExpeditionByID(expeditionID int) (*ds.Expedition, error) {
+func (r *Repository) GetExpeditionByID(expeditionID int) (*ds.Expedition, error) {
 	expedition := &ds.Expedition{}
 
-	err := repository.db.Preload("Alpinists").First(expedition, "id = ?", expeditionID).Error
+	err := r.db.Preload("Alpinists").First(expedition, "id = ?", expeditionID).Error
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +216,7 @@ func (repository *Repository) GetExpeditionByID(expeditionID int) (*ds.Expeditio
 	return expedition, nil
 }
 
-func (repository *Repository) DeleteExpedition(expedition ds.Expedition) error {
+func (r *Repository) DeleteExpedition(expedition ds.Expedition) error {
 	//for _, alpinist := range expedition.Alpinists {
 	//	err := repository.db.Model(&expedition).Association("Alpinists").Delete(&alpinist)
 	//	if err != nil {
@@ -190,7 +224,7 @@ func (repository *Repository) DeleteExpedition(expedition ds.Expedition) error {
 	//	}
 	//}
 
-	err := repository.db.Updates(ds.Expedition{ID: expedition.ID, Status: expedition.Status, ClosedAt: expedition.ClosedAt}).Error
+	err := r.db.Updates(ds.Expedition{ID: expedition.ID, Status: expedition.Status, ClosedAt: expedition.ClosedAt}).Error
 	if err != nil {
 		return err
 	}
@@ -198,13 +232,33 @@ func (repository *Repository) DeleteExpedition(expedition ds.Expedition) error {
 	return nil
 }
 
-func (repository *Repository) GetDraft(userID int) (ds.Expedition, error) {
+func (r *Repository) GetDraft(userID int) (ds.Expedition, error) {
 	var expedition ds.Expedition
-	err := repository.db.First(&expedition, "user_id = ? AND status = ?", userID, ds.StatusDraft).Error
+	err := r.db.First(&expedition, "user_id = ? AND status = ?", userID, ds.StatusDraft).Error
 
 	if err != nil {
 		return ds.Expedition{}, err
 	}
 
 	return expedition, nil
+}
+
+func (r *Repository) GetByEmail(email string) (ds.User, error) {
+	var u ds.User
+	err := r.db.First(&u, "email = ?", email).Error
+
+	if err != nil {
+		return ds.User{}, err
+	}
+
+	return u, nil
+}
+
+func (r *Repository) AddUser(user ds.User) (int, error) {
+	result := r.db.Create(&user)
+
+	if err := result.Error; err != nil {
+		return 0, err
+	}
+	return int(user.ID), nil
 }

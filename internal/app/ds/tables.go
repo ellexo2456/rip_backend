@@ -24,9 +24,10 @@ type Expedition struct {
 
 type User struct {
 	ID       uint   `gorm:"primarykey;autoIncrement"`
-	Login    string `gorm:"type:varchar(90); unique"`
-	Password string `gorm:"type:varchar(90)" json:"password,omitempty"`
-	ImageRef string `gorm:"type:varchar(90)" json:"imageRef,omitempty"`
+	Email    string `gorm:"type:varchar(90); unique"`
+	Password []byte `gorm:"type:bytea" json:"password,omitempty"`
+	ImageRef string `gorm:"type:varchar(90)" json:"imageRef,omitempty"Z`
+	Role     Role   `gorm:"type:text;" json:"role,omitempty"`
 	//Expeditions []Expedition `gorm:"foreignkey:UserID;foreignkey:ModeratorID;"`
 }
 

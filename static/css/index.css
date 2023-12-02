@@ -24,9 +24,9 @@ body {
     display: grid;
     align-items: center;
 
-.card {
-    flex: 0 0 auto;
-}
+    .card {
+        flex: 0 0 auto;
+    }
 
 }
 

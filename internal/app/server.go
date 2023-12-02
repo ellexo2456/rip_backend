@@ -1,14 +1,20 @@
 package app
 
 import (
+	"RIpPeakBack/internal/app/middleware"
+	"bytes"
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"errors"
+	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"golang.org/x/crypto/argon2"
 	"gorm.io/gorm"
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/mail"
 	"os"
 	"strconv"
 	"strings"
@@ -26,31 +32,312 @@ import (
 func (a *Application) StartServer() {
 	log.Println("Server start up")
 
-	router := gin.Default()
+	r := gin.Default()
 
-	router.GET("/", a.filterAlpinistsByCountry)
-	router.GET("/alpinist/:id", a.getAlpinist)
-	router.DELETE("/alpinist/:id", a.deleteAlpinist)
-	router.POST("/alpinist", a.addAlpinist)
-	router.POST("/alpinist/expedition", a.addAlpinistToLastExpedition)
-	router.PUT("/alpinist", a.modifyAlpinist)
-	router.MaxMultipartMemory = 8 << 20 // 8 MiB
-	router.POST("/alpinist/image", a.uploadImage)
+	r.GET("/", a.filterAlpinistsByCountry)
+	r.GET("/alpinist/:id", a.getAlpinist)
 
-	router.PUT("/expedition", a.changeExpeditionInfoFields)
-	router.PUT("/expedition/status/user", a.changeExpeditionUserStatus)
-	router.PUT("/expedition/status/moderator", a.changeExpeditionModeratorStatus)
-	router.GET("/expedition/filter", a.filterExpeditionsByStatusAndFormedTime)
-	router.GET("/expedition/:id", a.getExpedition)
-	router.DELETE("/expedition/:id", a.deleteExpedition)
+	r.POST("/auth/login", a.Login)
+	r.POST("/auth/logout", a.Logout)
+	r.POST("/auth/register", a.Register)
+	//r.HandleFunc("/api/v1/auth/check", handler.CheckAuth).Methods(http.MethodPost, http.MethodOptions)
 
-	err := router.Run()
+	mw := middleware.New(a.rr)
+	authorized := r.Group("/")
+	authorized.Use(mw.IsAuth())
+	{
+		authorized.DELETE("/alpinist/:id", a.deleteAlpinist)
+		authorized.POST("/alpinist", a.addAlpinist)
+		authorized.POST("/alpinist/expedition", a.addAlpinistToLastExpedition)
+		authorized.PUT("/alpinist", a.modifyAlpinist)
+		r.MaxMultipartMemory = 8 << 20 // 8 MiB
+		authorized.POST("/alpinist/image", a.uploadImage)
+
+		authorized.PUT("/expedition", a.changeExpeditionInfoFields)
+		authorized.PUT("/expedition/status/user", a.FormExpedition)
+		authorized.PUT("/expedition/:id/status", a.changeExpeditionModeratorStatus)
+		authorized.GET("/expedition/filter", a.filterExpeditionsByStatusAndFormedTime)
+		authorized.GET("/expedition/:id", a.getExpedition)
+		authorized.DELETE("/expedition/:id", a.deleteExpedition)
+	}
+
+	err := r.Run()
 	if err != nil {
 		log.Println("Error with running\nServer down")
 		return
 	} // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
 	log.Println("Server down")
+}
+
+// Login godoc
+//
+//	@Summary		login user
+//	@Description	create user session and put it into cookie
+//	@Tags			auth
+//	@Accept			json
+//	@Param			body	body		ds.Credentials	true	"user credentials"
+//	@Success		200		{object}	object{body=object{id=int}}
+//	@Failure		400		{object}	object{err=string}
+//	@Failure		401		{object}	object{err=string}
+//	@Failure		404		{object}	object{err=string}
+//	@Failure		409		{object}	object{err=string}
+//	@Failure		500		{object}	object{err=string}
+//	@Router			/auth/login [post]
+func (a *Application) Login(ctx *gin.Context) {
+	auth, err := a.auth(ctx)
+	if auth == true {
+		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
+			"status":  "fail",
+			"message": "you must be unauthorised\"",
+		})
+		return
+	}
+
+	//if err != nil {
+	//	ds.WriteError(w, err.Error(), http.StatusBadRequest)
+	//	return
+	//}
+	//defer a.CloseAndAlert(r.Body)
+
+	var c ds.Credentials
+	if err := ctx.ShouldBindJSON(&c); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid request body",
+		})
+		return
+	}
+
+	if err = checkCredentials(c); err != nil {
+		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+	c.Email = strings.TrimSpace(c.Email)
+
+	expectedUser, err := a.repository.GetByEmail(c.Email)
+	if err != nil {
+		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if !checkPasswords(expectedUser.Password, c.Password) {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "username or password is invalid",
+		})
+		return
+	}
+
+	session := ds.Session{
+		Token:     uuid.NewString(),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		UserID:    int(expectedUser.ID),
+		Role:      ds.Usr,
+	}
+	if err = a.rr.Add(session); err != nil {
+		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	//ctx.SetCookie("session_token", session.Token, int(session.ExpiresAt.Unix()), "/", "localhost", false, true)
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "session_token",
+		Value:    session.Token,
+		Expires:  session.ExpiresAt,
+		Path:     "/",
+		HttpOnly: true,
+	})
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"id": expectedUser.ID,
+	})
+}
+
+// Logout godoc
+//
+//	@Summary		logout user
+//	@Description	delete current session and nullify cookie
+//	@Tags			auth
+//	@Success		204
+//	@Failure		400	{object}	object{err=string}
+//	@Failure		401	{object}	object{err=string}
+//	@Failure		404	{object}	object{err=string}
+//	@Failure		409	{object}	object{err=string}
+//	@Failure		500	{object}	object{err=string}
+//	@Router			/auth/logout [post]
+func (a *Application) Logout(ctx *gin.Context) {
+	auth, err := a.auth(ctx)
+	if auth != true {
+		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
+			"status":  "fail",
+			"message": "you must be unauthorised",
+		})
+		return
+	}
+
+	t, err := ctx.Cookie("session_token")
+
+	if err = a.rr.DeleteByToken(t); err != nil {
+		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+
+	}
+
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Expires:  time.Now(),
+		Path:     "/",
+		HttpOnly: true,
+	})
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// Register godoc
+//
+//	@Summary		register user
+//	@Description	add new user to db and return it id
+//	@Tags			auth
+//	@Produce		json
+//	@Accept			json
+//	@Param			body	body		ds.Credentials	true	"user credentials"
+//	@Success		200		{object}	object{body=object{id=int}}
+//	@Failure		400		{object}	object{err=string}
+//	@Failure		401		{object}	object{err=string}
+//	@Failure		409		{object}	object{err=string}
+//	@Failure		500		{object}	object{err=string}
+//	@Router			/auth/register [post]
+func (a *Application) Register(ctx *gin.Context) {
+	auth, err := a.auth(ctx)
+	if auth != true {
+		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
+			"status":  "fail",
+			"message": "you must be unauthorised",
+		})
+		return
+	}
+
+	var user ds.User
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid request body",
+		})
+		return
+	}
+
+	user.Email = strings.TrimSpace(user.Email)
+	if err = checkCredentials(ds.Credentials{Email: user.Email, Password: user.Password}); err != nil {
+		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	salt := make([]byte, 8)
+	rand.Read(salt)
+	user.Password = HashPassword(salt, user.Password)
+	var id int
+	if id, err = a.repository.AddUser(user); err != nil {
+		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+	}
+
+	session := ds.Session{
+		Token:     uuid.NewString(),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		UserID:    id,
+		Role:      ds.Usr,
+	}
+	if err = a.rr.Add(session); err != nil {
+		ctx.JSON(ds.GetHttpStatusCode(err), gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	//ctx.SetCookie("session_token", session.Token, int(session.ExpiresAt.Unix()), "/", "localhost", false, true)
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "session_token",
+		Value:    session.Token,
+		Expires:  session.ExpiresAt,
+		Path:     "/",
+		HttpOnly: true,
+	})
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"id": id,
+	})
+}
+
+func (a *Application) auth(ctx *gin.Context) (bool, error) {
+	c, err := ctx.Request.Cookie("session_token")
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			return false, ds.ErrUnauthorized
+		}
+
+		return false, ds.ErrBadRequest
+	}
+	if c.Expires.After(time.Now()) {
+		return false, ds.ErrUnauthorized
+	}
+	sessionToken := c.Value
+	sc, err := a.rr.SessionExists(sessionToken)
+	if err != nil {
+		return false, err
+	}
+	if sc.UserID == 0 {
+		return false, ds.ErrUnauthorized
+	}
+
+	return true, ds.ErrAlreadyExists
+}
+
+func HashPassword(salt []byte, password []byte) []byte {
+	hashedPass := argon2.IDKey(password, salt, 1, 64*1024, 4, 32)
+	return append(salt, hashedPass...)
+}
+
+func checkPasswords(passHash []byte, plainPassword []byte) bool {
+	salt := passHash[0:8]
+	userPassHash := HashPassword(salt, plainPassword)
+	return bytes.Equal(userPassHash, passHash)
+}
+
+func valid(email string) bool {
+	_, err := mail.ParseAddress(email)
+	return err == nil
+}
+
+func checkCredentials(cred ds.Credentials) error {
+	if cred.Email == "" || len(cred.Password) == 0 {
+		return ds.ErrWrongCredentials
+	}
+
+	if !valid(cred.Email) {
+		return ds.ErrWrongCredentials
+	}
+
+	return nil
 }
 
 // filterAlpinistsByCountry godoc
@@ -212,8 +499,22 @@ func (a *Application) addAlpinistToLastExpedition(c *gin.Context) {
 		return
 	}
 
-	expedition.UserID = ds.UserID
-	expedition.ModeratorID = ds.UserID
+	value, exists := c.Get("sessionContext")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "must be authorized",
+		})
+		return
+	}
+	sc := value.(ds.SessionContext)
+
+	if sc.Role == ds.Moderator {
+		expedition.ModeratorID = uint(sc.UserID)
+	}
+	if sc.Role == ds.Usr {
+		expedition.UserID = uint(sc.UserID)
+	}
 	setTime(&expedition)
 
 	if expedition.Status != ds.StatusDraft {
@@ -316,7 +617,7 @@ func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
 	c.JSON(http.StatusOK, expedition)
 }
 
-// changeExpeditionUserStatus godoc
+// FormExpedition godoc
 // @Summary      changes an expedition status
 // @Description  changes an expedition status with that one witch can be changed by a user
 // @Tags         expeditions
@@ -327,8 +628,31 @@ func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
 // @Failure      404  {json}
 // @Failure      500  {json}
 // @Router       /expedition/status/user/{id} [put]
-func (a *Application) changeExpeditionUserStatus(c *gin.Context) {
-	changeStatus(c, a, checkUserStatus)
+func (a *Application) FormExpedition(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid parameter id",
+		})
+		return
+	}
+
+	if id < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "negative parameter id",
+		})
+		return
+	}
+
+	a.changeStatus(
+		c,
+		ds.Expedition{
+			ID:     uint(id),
+			Status: ds.StatusFormed},
+		checkUserStatus,
+	)
 }
 
 // changeExpeditionModeratorStatus godoc
@@ -341,9 +665,37 @@ func (a *Application) changeExpeditionUserStatus(c *gin.Context) {
 // @Failure      403  {json}
 // @Failure      404  {json}
 // @Failure      500  {json}
-// @Router       /expedition/status/moderator/{id} [put]
+// @Router       /expedition/{id}/status [put]
 func (a *Application) changeExpeditionModeratorStatus(c *gin.Context) {
-	changeStatus(c, a, checkModeratorStatus)
+	var expedition ds.Expedition
+
+	if err := c.ShouldBindJSON(&expedition); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid status",
+		})
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid parameter id",
+		})
+		return
+	}
+
+	if id < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "negative parameter id",
+		})
+		return
+	}
+	expedition.ID = uint(id)
+
+	a.changeStatus(c, expedition, checkModeratorStatus)
 }
 
 // filterExpeditionsByStatusAndFormedTime godoc
@@ -371,34 +723,44 @@ func (a *Application) filterExpeditionsByStatusAndFormedTime(c *gin.Context) {
 	//	return
 	//}
 
+	value, exists := c.Get("sessionContext")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "must be authorized",
+		})
+		return
+	}
+	sc := value.(ds.SessionContext)
+
 	var foundExpeditions *[]ds.Expedition
 	var err error
 	if status == "" && startTime == "" && endTime == "" {
-		foundExpeditions, err = a.repository.GetExpeditions()
+		foundExpeditions, err = a.repository.GetExpeditions(sc)
 	}
 	if status != "" && startTime == "" && endTime == "" {
-		foundExpeditions, err = a.repository.FilterByStatus(status)
+		foundExpeditions, err = a.repository.FilterByStatus(status, sc)
 	}
 	if status == "" && startTime != "" && endTime != "" {
-		foundExpeditions, err = a.repository.FilterByFormedTime(startTime, endTime)
+		foundExpeditions, err = a.repository.FilterByFormedTime(startTime, endTime, sc)
 	}
 
 	if status == "" && startTime != "" && endTime == "" {
-		foundExpeditions, err = a.repository.FilterByFormedTime(startTime, time.Now().Add(8760*time.Hour).Format("2006-01-02"))
+		foundExpeditions, err = a.repository.FilterByFormedTime(startTime, time.Now().Add(8760*time.Hour).Format("2006-01-02"), sc)
 	}
 	if status == "" && startTime == "" && endTime != "" {
-		foundExpeditions, err = a.repository.FilterByFormedTime(ds.MinDate, endTime)
+		foundExpeditions, err = a.repository.FilterByFormedTime(ds.MinDate, endTime, sc)
 	}
 
 	if status != "" && startTime != "" && endTime == "" {
-		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(startTime, time.Now().Add(8760*time.Hour).Format("2006-01-02"), status)
+		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(startTime, time.Now().Add(8760*time.Hour).Format("2006-01-02"), status, sc)
 	}
 	if status != "" && startTime == "" && endTime != "" {
-		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(ds.MinDate, endTime, status)
+		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(ds.MinDate, endTime, status, sc)
 	}
 
 	if status != "" && startTime != "" && endTime != "" {
-		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(startTime, endTime, status)
+		foundExpeditions, err = a.repository.FilterByFormedTimeAndStatus(startTime, endTime, status, sc)
 	}
 
 	if err != nil {
@@ -409,7 +771,7 @@ func (a *Application) filterExpeditionsByStatusAndFormedTime(c *gin.Context) {
 		return
 	}
 
-	draft, err := a.repository.GetDraft(ds.UserID)
+	draft, err := a.repository.GetDraft(sc.UserID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			draft = ds.Expedition{}
@@ -713,16 +1075,16 @@ func setTime(expedition *ds.Expedition) {
 	}
 }
 
-func changeStatus(c *gin.Context, a *Application, checkStatus func(ds.Expedition, int) bool) {
-	var expedition ds.Expedition
-
-	if err := c.ShouldBindJSON(&expedition); err != nil {
+func (a *Application) changeStatus(c *gin.Context, expedition ds.Expedition, checkStatus func(ds.Expedition, ds.SessionContext) bool) {
+	value, exists := c.Get("sessionContext")
+	if !exists {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "fail",
-			"message": "invalid status",
+			"message": "must be authorized",
 		})
 		return
 	}
+	sc := value.(ds.SessionContext)
 
 	expeditionWithStatus, err := a.repository.GetExpeditionById(expedition.ID)
 	if err != nil {
@@ -733,45 +1095,18 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(ds.Expedition
 		return
 	}
 	expedition.UserID = expeditionWithStatus.UserID
+	expedition.ModeratorID = expeditionWithStatus.ModeratorID
 
-	if !checkStatus(expedition, ds.UserID) {
+	if !checkStatus(expedition, sc) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  "fail",
-			"message": "invalid status or user",
-		})
+			"message": "invalid status or user"})
 		return
 	}
 
-	expedition.UserID = ds.UserID
-	expedition.ModeratorID = ds.UserID
 	expedition.FormedAt = expeditionWithStatus.FormedAt
 	expedition.ClosedAt = expeditionWithStatus.ClosedAt
 	setTime(&expedition)
-
-	//id, err := strconv.Atoi(c.DefaultQuery("id", ""))
-	//if err != nil {
-	//	c.JSON(http.StatusBadRequest, gin.H{
-	//		"status":  "fail",
-	//		"message": "invalid parameter id",
-	//	})
-	//	return
-	//}
-	//
-	//if id < 0 {
-	//	c.JSON(http.StatusBadRequest, gin.H{
-	//		"status":  "fail",
-	//		"message": "negative parameter id",
-	//	})
-	//	return
-	//}
-
-	if expedition.Status == ds.StatusFormed && expeditionWithStatus.Status != ds.StatusDraft {
-		c.JSON(http.StatusForbidden, gin.H{
-			"status":  "fail",
-			"message": "can`t form order that isn`t a draft",
-		})
-		return
-	}
 
 	if expedition.Status == ds.StatusCanceled || expedition.Status == ds.StatusDenied && expeditionWithStatus.Status != ds.StatusFormed {
 		c.JSON(http.StatusForbidden, gin.H{
@@ -793,18 +1128,21 @@ func changeStatus(c *gin.Context, a *Application, checkStatus func(ds.Expedition
 	return
 }
 
-func checkUserStatus(expedition ds.Expedition, id int) bool {
-	if expedition.Status != ds.StatusDraft && expedition.Status != ds.StatusFormed && expedition.Status != ds.StatusDeleted {
+func checkUserStatus(expedition ds.Expedition, sc ds.SessionContext) bool {
+	if expedition.Status != ds.StatusFormed {
 		return false
 	}
-	if expedition.UserID != uint(id) {
+	if uint(sc.UserID) != expedition.UserID || sc.Role != ds.Usr {
 		return false
 	}
 	return true
 }
 
-func checkModeratorStatus(expedition ds.Expedition, id int) bool {
+func checkModeratorStatus(expedition ds.Expedition, sc ds.SessionContext) bool {
 	if expedition.Status != ds.StatusCanceled && expedition.Status != ds.StatusDenied {
+		return false
+	}
+	if uint(sc.UserID) != expedition.ModeratorID || sc.Role != ds.Moderator {
 		return false
 	}
 	return true

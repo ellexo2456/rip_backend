@@ -48,16 +48,16 @@ func main() {
 
 	db.Create(alpinists)
 
-	users := []*ds.User{
-		&ds.User{
-			Login:    "user",
-			Password: "124",
-		},
-		&ds.User{
-			Login:    "admin",
-			Password: "124",
-		},
-	}
+	//users := []*ds.User{
+	//	&ds.User{
+	//		Email:    "user",
+	//		Password: "124",
+	//	},
+	//	&ds.User{
+	//		Email:    "admin",
+	//		Password: "124",
+	//	},
+	//}
 
-	db.Create(users)
+	//db.Create(users)
 }

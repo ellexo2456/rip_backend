@@ -8,6 +8,7 @@ import (
 
 type Application struct {
 	repository *repository.Repository
+	rr         repository.Redis
 }
 
 func New() (Application, error) {
@@ -17,5 +18,5 @@ func New() (Application, error) {
 		return Application{}, err
 	}
 
-	return Application{repository: repo}, nil
+	return Application{repository: repo, rr: repository.NewRedis()}, nil
 }
