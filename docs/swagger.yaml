@@ -168,7 +168,6 @@ paths:
       summary: adds the alpinist
       tags:
       - alpinists
-      - expeditions
     put:
       consumes:
       - application/json
@@ -206,8 +205,8 @@ paths:
       description: deletes an alpinist by a given id and returns the page without
         it
       parameters:
-      - description: alpinists id
-        in: query
+      - description: id
+        in: path
         name: id
         required: true
         type: integer
@@ -285,18 +284,22 @@ paths:
       summary: returns the page of the alpinist
       tags:
       - alpinists
-  /alpinist/expedition:
+  /alpinist/expedition/{id}:
     post:
       consumes:
       - application/json
-      description: creates expedition and adds an alpinist to
+      description: creates expedition and/or adds an alpinist to
+      parameters:
+      - description: alpinists id
+        in: path
+        name: id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            type: json
+        "204":
+          description: No Content
         "400":
           description: Bad Request
           schema:
@@ -587,7 +590,7 @@ paths:
       description: deletes an expedition from db
       parameters:
       - description: expedition id
-        in: query
+        in: path
         name: id
         required: true
         type: integer
@@ -679,7 +682,22 @@ paths:
       consumes:
       - application/json
       description: changes an expedition status with that one witch can be changed
-        by a moderator
+        by a moderator (deleted or canceled)
+      parameters:
+      - description: expedition id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: expedition status
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            status:
+              type: string
+          type: object
       responses:
         "204":
           description: No Content
@@ -722,7 +740,7 @@ paths:
       summary: changes an expedition status
       tags:
       - expeditions
-  /expedition/filter/{status}:
+  /expedition/filter/:
     get:
       description: returns the page with an expeditions that had been filtered by
         a status or/and formed time
@@ -774,12 +792,17 @@ paths:
       summary: returns the page with a filtered expeditions
       tags:
       - expeditions
-  /expedition/status/user/{id}:
+  /expedition/status/form/{id}:
     put:
       consumes:
       - application/json
-      description: changes an expedition status with that one witch can be changed
-        by a user
+      description: changes an expedition status to formed
+      parameters:
+      - description: expedition id
+        in: path
+        name: id
+        required: true
+        type: integer
       responses:
         "204":
           description: No Content

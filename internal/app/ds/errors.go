@@ -25,7 +25,7 @@ func GetHttpStatusCode(err error) int {
 	case ErrWrongCredentials:
 		return http.StatusBadRequest
 	case ErrUnauthorized:
-		return http.StatusUnauthorized
+		return http.StatusForbidden
 
 	case ErrInvalidToken:
 		return http.StatusBadRequest

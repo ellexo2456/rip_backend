@@ -15,10 +15,10 @@ type Expedition struct {
 	CreatedAt     time.Time  `json:"createdAt"`
 	FormedAt      time.Time  `json:"formedAt"`
 	ClosedAt      time.Time  `json:"closedAt"`
-	UserID        uint       `json:"-"`
+	UserID        uint       `json:"-" gorm:"DEFAULT:NULL"`
 	Usr           *User      `gorm:"foreignkey:UserID" json:"user,omitempty"`
 	ModeratorUser *User      `gorm:"foreignkey:ModeratorID;" json:"moderator,omitempty"`
-	ModeratorID   uint       `json:"-"`
+	ModeratorID   uint       `json:"-" gorm:"DEFAULT:NULL"`
 	Alpinists     []Alpinist `gorm:"many2many:alpinist_expedition" json:"alpinists,omitempty"`
 }
 

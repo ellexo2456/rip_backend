@@ -84,6 +84,7 @@ func (s *Redis) DeleteByToken(token string) error {
 	if token == "" {
 		return ds.ErrInvalidToken
 	}
+
 	err := s.client.Del(context.Background(), token).Err()
 	if err != nil {
 		return err

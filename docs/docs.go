@@ -81,8 +81,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "alpinists",
-                    "expeditions"
+                    "alpinists"
                 ],
                 "summary": "adds the alpinist",
                 "responses": {
@@ -128,9 +127,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/alpinist/expedition": {
+        "/alpinist/expedition/{id}": {
             "post": {
-                "description": "creates expedition and adds an alpinist to",
+                "description": "creates expedition and/or adds an alpinist to",
                 "consumes": [
                     "application/json"
                 ],
@@ -142,12 +141,18 @@ const docTemplate = `{
                     "expeditions"
                 ],
                 "summary": "adds an alpinist to expedition",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "alpinists id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "json"
-                        }
+                    "204": {
+                        "description": "No Content"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -316,9 +321,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "alpinists id",
+                        "description": "id",
                         "name": "id",
-                        "in": "query",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -716,7 +721,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/expedition/filter/{status}": {
+        "/expedition/filter/": {
             "get": {
                 "description": "returns the page with an expeditions that had been filtered by a status or/and formed time",
                 "produces": [
@@ -795,9 +800,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/expedition/status/user/{id}": {
+        "/expedition/status/form/{id}": {
             "put": {
-                "description": "changes an expedition status with that one witch can be changed by a user",
+                "description": "changes an expedition status to formed",
                 "consumes": [
                     "application/json"
                 ],
@@ -805,6 +810,15 @@ const docTemplate = `{
                     "expeditions"
                 ],
                 "summary": "changes an expedition status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "expedition id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "204": {
                         "description": "No Content"
@@ -957,7 +971,7 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "expedition id",
                         "name": "id",
-                        "in": "query",
+                        "in": "path",
                         "required": true
                     }
                 ],
@@ -1012,7 +1026,7 @@ const docTemplate = `{
         },
         "/expedition/{id}/status": {
             "put": {
-                "description": "changes an expedition status with that one witch can be changed by a moderator",
+                "description": "changes an expedition status with that one witch can be changed by a moderator (deleted or canceled)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1020,6 +1034,29 @@ const docTemplate = `{
                     "expeditions"
                 ],
                 "summary": "changes an expedition status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "expedition id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "expedition status",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
                 "responses": {
                     "204": {
                         "description": "No Content"

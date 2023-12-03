@@ -5,6 +5,7 @@ import (
 	"errors"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"time"
 )
 
 type Repository struct {
@@ -72,23 +73,36 @@ func (r *Repository) UpdateAlpinist(alpinist ds.Alpinist) error {
 	return nil
 }
 
-func (r *Repository) AddExpedition(expedition ds.Expedition) (uint, error) {
+func (r *Repository) AddExpedition(expedition ds.Expedition) error {
 	var existingExpedition ds.Expedition
-	result := r.db.Where("status = ?", expedition.Status).First(&existingExpedition)
+	err := r.db.Where("status = ? AND user_id = ?", expedition.Status, expedition.UserID).First(&existingExpedition).Error
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		err := r.db.Create(&expedition).Error
-		if err != nil {
-			return 0, err
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			expedition.CreatedAt = time.Now()
+
+			//err := r.db.Create(ds.Expedition{
+			//	CreatedAt: time.Now(),
+			//	UserID:    expedition.UserID,
+			//	Status:    ds.StatusDraft,
+			//}).Error
+			err := r.db.Create(&expedition).Association("Alpinists").Append(expedition.Alpinists)
+			if err != nil {
+				return err
+			}
+
+			return nil
 		}
-		return expedition.ID, nil
-	} else {
-		err := r.db.Model(&existingExpedition).Association("Alpinists").Append(expedition.Alpinists)
-		if err != nil {
-			return 0, err
-		}
-		return existingExpedition.ID, nil
+
+		return err
 	}
+
+	err = r.db.Model(&existingExpedition).Association("Alpinists").Append(expedition.Alpinists)
+	if err != nil {
+		return err
+	}
+
+	return nil
 
 }
 
@@ -118,11 +132,11 @@ func (r *Repository) FilterByStatus(status string, sc ds.SessionContext) (*[]ds.
 	var err error
 	if sc.Role == ds.Usr {
 		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, login")
+			return db.Select("id, email")
 		}).Find(expedition, "user_id = ? AND status = ?", sc.UserID, status).Error
 	} else {
 		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, login")
+			return db.Select("id, email")
 		}).Find(expedition, "status = ?", status).Error
 	}
 
@@ -139,11 +153,11 @@ func (r *Repository) FilterByFormedTime(startTime string, endTime string, sc ds.
 	var err error
 	if sc.Role == ds.Usr {
 		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, login")
+			return db.Select("id, email")
 		}).Find(expedition, "user_id = ? AND status != 'удалено' AND formed_at BETWEEN ? AND ?", sc.UserID, startTime, endTime).Error
 	} else {
 		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, login")
+			return db.Select("id, email")
 		}).Find(expedition, "status != 'удалено' AND formed_at BETWEEN ? AND ?", startTime, endTime).Error
 	}
 
@@ -160,11 +174,11 @@ func (r *Repository) FilterByFormedTimeAndStatus(startTime string, endTime strin
 	var err error
 	if sc.Role == ds.Usr {
 		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, login")
+			return db.Select("id, email")
 		}).Find(expedition, "user_id = ? AND status = ? AND formed_at BETWEEN ? AND ?", sc.UserID, status, startTime, endTime).Error
 	} else {
 		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, login")
+			return db.Select("id, email")
 		}).Find(expedition, "status = ? AND formed_at BETWEEN ? AND ?", status, startTime, endTime).Error
 	}
 	if err != nil {
@@ -180,11 +194,11 @@ func (r *Repository) GetExpeditions(sc ds.SessionContext) (*[]ds.Expedition, err
 	var err error
 	if sc.Role == ds.Usr {
 		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, login")
+			return db.Select("id, email")
 		}).Find(expeditions, "status != 'удалено' AND user_id = ?", sc.UserID).Error
 	} else {
 		err = r.db.Preload("Usr", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id, login")
+			return db.Select("id, email")
 		}).Find(expeditions, "status != 'удалено'").Error
 	}
 
