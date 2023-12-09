@@ -1153,12 +1153,16 @@ func (a *Application) changeStatus(c *gin.Context, expedition ds.Expedition, che
 	expedition.ClosedAt = expeditionWithStatus.ClosedAt
 	setTime(&expedition)
 
-	if expedition.Status == ds.StatusCanceled || expedition.Status == ds.StatusDenied && expeditionWithStatus.Status != ds.StatusFormed {
-		c.JSON(http.StatusForbidden, gin.H{
-			"status":  "fail",
-			"message": "can`t close order that isn`t open",
-		})
-		return
+	if expedition.Status == ds.StatusCanceled || expedition.Status == ds.StatusDenied {
+		if expeditionWithStatus.Status != ds.StatusFormed {
+			c.JSON(http.StatusForbidden, gin.H{
+				"status":  "fail",
+				"message": "can`t close order that isn`t open",
+			})
+
+			return
+		}
+		expedition.ClosedAt = time.Now()
 	}
 
 	if err := a.repository.UpdateStatus(expedition); err != nil {
