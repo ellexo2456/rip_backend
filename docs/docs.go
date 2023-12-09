@@ -669,12 +669,31 @@ const docTemplate = `{
                     "expeditions"
                 ],
                 "summary": "changes an expedition",
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                "parameters": [
+                    {
+                        "description": "user credentials",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
                         "schema": {
-                            "$ref": "#/definitions/ds.Expedition"
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "year": {
+                                    "type": "integer"
+                                }
+                            }
                         }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1230,15 +1249,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/ds.Alpinist"
                     }
-                },
-                "closedAt": {
-                    "type": "string"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "formedAt": {
-                    "type": "string"
                 },
                 "id": {
                     "type": "integer"

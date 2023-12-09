@@ -36,12 +36,6 @@ definitions:
         items:
           $ref: '#/definitions/ds.Alpinist'
         type: array
-      closedAt:
-        type: string
-      createdAt:
-        type: string
-      formedAt:
-        type: string
       id:
         type: integer
       moderator:
@@ -548,13 +542,25 @@ paths:
       - application/json
       description: changes an expedition information fields that can be changed by
         a user
+      parameters:
+      - description: user credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            year:
+              type: integer
+          type: object
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ds.Expedition'
+        "204":
+          description: No Content
         "400":
           description: Bad Request
           schema:

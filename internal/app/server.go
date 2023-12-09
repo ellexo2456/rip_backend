@@ -554,6 +554,7 @@ func (a *Application) addAlpinistToLastExpedition(c *gin.Context) {
 	if sc.Role == ds.Usr {
 		expedition.UserID = uint(sc.UserID)
 	}
+
 	//setTime(&expedition)
 	//expedition.Alpinists =
 	if err = a.repository.AddExpedition(expedition); err != nil {
@@ -602,12 +603,13 @@ func (a *Application) modifyAlpinist(c *gin.Context) {
 // @Summary      changes an expedition
 // @Description  changes an expedition information fields that can be changed by a user
 // @Tags         expeditions
+// @Param			body	body		object{id=uint,name=string,year=int}	true	"user credentials"
 // @Accept       json
 // @Produce      json
 // @Failure      400  {object} object{status=string, message=string}
 // @Failure      404  {object} object{status=string, message=string}
 // @Failure      500  {object} object{status=string, message=string}
-// @Success      200  {object} ds.Expedition
+// @Success      204
 // @Router       /expedition [put]
 func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
 	var expedition ds.Expedition
@@ -619,6 +621,17 @@ func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
 		return
 	}
 
+	value, exists := c.Get("sessionContext")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "must be authorized",
+		})
+		return
+	}
+	sc := value.(ds.SessionContext)
+
+	expedition.UserID = uint(sc.UserID)
 	dbExpedition, err := a.repository.GetExpeditionById(expedition.ID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -634,14 +647,14 @@ func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
 	expedition.ClosedAt = dbExpedition.ClosedAt
 
 	if err = a.repository.UpdateExpedition(expedition); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.JSON(ds.GetHttpStatusCode(err), gin.H{
 			"status":  "fail",
-			"message": "can`t update expedition in db",
+			"message": err.Error(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, expedition)
+	c.Status(http.StatusNoContent)
 }
 
 // formExpedition godoc

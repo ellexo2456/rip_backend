@@ -14,6 +14,7 @@ var (
 	ErrInvalidToken        = errors.New("session token is invalid")
 	ErrAlreadyExists       = errors.New("resource already exists")
 	ErrOutOfRange          = errors.New("id is out of range")
+	ErrWrongUser           = errors.New("you can`t modify this data")
 )
 
 func GetHttpStatusCode(err error) int {
@@ -25,6 +26,8 @@ func GetHttpStatusCode(err error) int {
 	case ErrWrongCredentials:
 		return http.StatusBadRequest
 	case ErrUnauthorized:
+		return http.StatusForbidden
+	case ErrWrongUser:
 		return http.StatusForbidden
 
 	case ErrInvalidToken:
