@@ -65,6 +65,30 @@ services:
       - minio3
       - minio4
 
+  redis:
+    image: redis:6.2-alpine
+    container_name: redis
+    networks:
+      local_area:
+    restart: always
+    volumes:
+      - redis_data:/var/lib/redis/data
+
+  postgres:
+    image: postgres:15.3-alpine
+    container_name: postgres
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+
+
 ## By default this config uses default local driver,
 ## For custom volumes replace with volume driver configuration.
 volumes:
@@ -76,3 +100,5 @@ volumes:
   data3-2:
   data4-1:
   data4-2:
+  postgres_data:
+  redis_data:

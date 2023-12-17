@@ -25,6 +25,7 @@ func (m *Middleware) IsAuth() gin.HandlerFunc {
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {
 				ctx.AbortWithStatusJSON(http.StatusUnauthorized, err.Error())
+				return
 			}
 
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
