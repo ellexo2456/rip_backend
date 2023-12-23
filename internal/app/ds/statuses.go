@@ -6,4 +6,7 @@ const (
 	StatusDraft    = "черновик"
 	StatusDenied   = "отклонено"
 	StatusCanceled = "завершено"
+
+	StatusVerified   = "проверено"
+	StatusUnreliable = "ненадёжен"
 )

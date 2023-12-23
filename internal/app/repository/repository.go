@@ -244,6 +244,17 @@ func (r *Repository) GetExpeditions(sc ds.SessionContext) (*[]ds.Expedition, err
 	return expeditions, nil
 }
 
+func (r *Repository) UpdateVerification(expedition ds.Expedition) error {
+	result := r.db.Table("expeditions").Updates(ds.Expedition{
+		ID:     expedition.ID,
+		Status: expedition.Status})
+
+	if err := result.Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *Repository) UpdateStatus(expedition ds.Expedition) error {
 	//result := repository.db.Table("expeditions").Where("id = ?", expedition.ID).Updates(ds.Expedition{Status: expedition.Status, FormedAt: expedition.FormedAt, ClosedAt: expedition.ClosedAt})
 	result := r.db.Table("expeditions").Where("id = ?", expedition.ID).Updates(expedition)

@@ -47,6 +47,7 @@ func (a *Application) StartServer() {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	r.GET("/", a.filterAlpinistsByCountry)
 	r.GET("/alpinist/:id", a.getAlpinist)
+	r.PUT("/expedition/archived/:id", a.verify)
 
 	r.POST("/auth/login", a.Login)
 	r.POST("/auth/logout", a.Logout)
@@ -647,6 +648,73 @@ func (a *Application) changeExpeditionInfoFields(c *gin.Context) {
 	expedition.ClosedAt = dbExpedition.ClosedAt
 
 	if err = a.repository.UpdateExpedition(expedition); err != nil {
+		c.JSON(ds.GetHttpStatusCode(err), gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// verify godoc
+// @Summary      changes an expedition status
+// @Description  changes an expedition status to verified
+// @Tags         expeditions
+// @Accept       json
+// @Param        id path uint true "expedition id"
+// @Success      204
+// @Failure      400   {object} object{status=string, message=string}
+// @Failure      403   {object} object{status=string, message=string}
+// @Failure      404   {object} object{status=string, message=string}
+// @Failure      500   {object} object{status=string, message=string}
+// @Router       /expedition/archived/{id} [put]
+func (a *Application) verify(c *gin.Context) {
+	var r ds.ArchiveResponse
+	if err := c.ShouldBindJSON(&r); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid request body",
+		})
+		return
+	}
+
+	if r.AuthKey != ds.AuthKey {
+		c.JSON(http.StatusForbidden, gin.H{
+			"status":  "fail",
+			"message": "wrong auth key",
+		})
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid parameter id",
+		})
+		return
+	}
+
+	if id < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "negative parameter id",
+		})
+		return
+	}
+
+	var e ds.Expedition
+	if r.Archived {
+		e.Status = ds.StatusVerified
+	}
+	if !r.Archived {
+		e.Status = ds.StatusUnreliable
+	}
+	e.ID = uint(id)
+
+	if err = a.repository.UpdateVerification(e); err != nil {
 		c.JSON(ds.GetHttpStatusCode(err), gin.H{
 			"status":  "fail",
 			"message": err.Error(),
