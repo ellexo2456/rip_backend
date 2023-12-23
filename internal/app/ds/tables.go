@@ -12,9 +12,9 @@ type Expedition struct {
 	Name          string     `gorm:"type:varchar(90)" json:"name"`
 	Year          int        `json:"year"`
 	Status        string     `gorm:"type:varchar(90)" json:"status"`
-	CreatedAt     time.Time  `json:"-"`
-	FormedAt      time.Time  `json:"-"`
-	ClosedAt      time.Time  `json:"-"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	FormedAt      time.Time  `json:"formedAt"`
+	ClosedAt      time.Time  `json:"closedAt"`
 	UserID        uint       `json:"-" gorm:"DEFAULT:NULL"`
 	Usr           *User      `gorm:"foreignkey:UserID" json:"user,omitempty"`
 	ModeratorUser *User      `gorm:"foreignkey:ModeratorID;" json:"moderator,omitempty"`
