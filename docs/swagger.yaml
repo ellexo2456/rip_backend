@@ -36,6 +36,12 @@ definitions:
         items:
           $ref: '#/definitions/ds.Alpinist'
         type: array
+      closedAt:
+        type: string
+      createdAt:
+        type: string
+      formedAt:
+        type: string
       id:
         type: integer
       moderator:

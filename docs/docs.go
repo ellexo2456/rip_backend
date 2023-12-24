@@ -1250,6 +1250,15 @@ const docTemplate = `{
                         "$ref": "#/definitions/ds.Alpinist"
                     }
                 },
+                "closedAt": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "formedAt": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
