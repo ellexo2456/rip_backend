@@ -117,6 +117,8 @@ paths:
                 items:
                   $ref: '#/definitions/ds.Alpinist'
                 type: array
+              ' draft':
+                $ref: '#/definitions/ds.Expedition'
               country:
                 type: string
             type: object

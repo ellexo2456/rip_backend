@@ -1170,6 +1170,9 @@ const docTemplate = `{
                                         "$ref": "#/definitions/ds.Alpinist"
                                     }
                                 },
+                                " draft": {
+                                    "$ref": "#/definitions/ds.Expedition"
+                                },
                                 "country": {
                                     "type": "string"
                                 }

@@ -358,7 +358,7 @@ func checkCredentials(cred ds.Credentials) error {
 // @Tags         alpinists
 // @Produce      json
 // @Param        country query string true "country name"
-// @Success      200  {object} object{country=string, alpinists=[]ds.Alpinist}
+// @Success      200  {object} object{country=string, alpinists=[]ds.Alpinist, draft=ds.Expedition}
 // @Failure      500  {object} object{status=string, message=string}
 // @Failure      500  {object} object{status=string, message=string}
 // @Router       /{name} [get]
@@ -387,8 +387,28 @@ func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
 		}
 	}
 
+	value, exists := c.Get("sessionContext")
+	var draft ds.Expedition
+	if exists {
+		sc := value.(ds.SessionContext)
+
+		draft, err = a.repository.GetDraft(sc.UserID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				draft = ds.Expedition{}
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"status":  "fail",
+					"message": err.Error(),
+				})
+				return
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"country":   country,
+		"draft":     draft,
 		"alpinists": *foundAlpinists,
 	})
 }
