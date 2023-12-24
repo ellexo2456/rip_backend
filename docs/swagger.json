@@ -737,6 +737,88 @@
                 }
             }
         },
+        "/expedition/archived/{id}": {
+            "put": {
+                "description": "changes an expedition status to verified",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "expeditions"
+                ],
+                "summary": "changes an expedition status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "expedition id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/expedition/filter/": {
             "get": {
                 "description": "returns the page with an expeditions that had been filtered by a status or/and formed time",
@@ -1246,6 +1328,15 @@
                     "items": {
                         "$ref": "#/definitions/ds.Alpinist"
                     }
+                },
+                "closedAt": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "formedAt": {
+                    "type": "string"
                 },
                 "id": {
                     "type": "integer"

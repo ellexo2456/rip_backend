@@ -36,6 +36,12 @@ definitions:
         items:
           $ref: '#/definitions/ds.Alpinist'
         type: array
+      closedAt:
+        type: string
+      createdAt:
+        type: string
+      formedAt:
+        type: string
       id:
         type: integer
       moderator:
@@ -704,6 +710,59 @@ paths:
             status:
               type: string
           type: object
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: changes an expedition status
+      tags:
+      - expeditions
+  /expedition/archived/{id}:
+    put:
+      consumes:
+      - application/json
+      description: changes an expedition status to verified
+      parameters:
+      - description: expedition id
+        in: path
+        name: id
+        required: true
+        type: integer
       responses:
         "204":
           description: No Content
