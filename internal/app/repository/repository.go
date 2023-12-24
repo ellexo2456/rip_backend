@@ -281,6 +281,16 @@ func (r *Repository) DeleteExpedition(expedition ds.Expedition) error {
 	return nil
 }
 
+func (r *Repository) DeleteAlpinistFromExpedition(expedition ds.Expedition) error {
+	err := r.db.Model(&expedition).Association("Alpinists").Delete(expedition.Alpinists)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *Repository) GetDraft(userID int) (ds.Expedition, error) {
 	var expedition ds.Expedition
 	err := r.db.First(&expedition, "user_id = ? AND status = ?", userID, ds.StatusDraft).Error

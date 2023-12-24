@@ -287,6 +287,49 @@ paths:
       tags:
       - alpinists
   /alpinist/expedition/{id}:
+    delete:
+      description: deletes an alpinist from expedition
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              ' message':
+                type: string
+              status:
+                type: string
+            type: object
+      summary: deletes an alpinist
+      tags:
+      - alpinists
     post:
       consumes:
       - application/json

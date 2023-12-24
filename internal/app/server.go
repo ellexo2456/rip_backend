@@ -63,6 +63,7 @@ func (a *Application) StartServer() {
 		authorized.PUT("/alpinist", a.modifyAlpinist)
 		r.MaxMultipartMemory = 8 << 20 // 8 MiB
 		authorized.POST("/alpinist/image", a.uploadImage)
+		authorized.DELETE("/alpinist/expedition/:id", a.deleteAlpinistFromLastExpedition)
 
 		authorized.PUT("/expedition", a.changeExpeditionInfoFields)
 		authorized.PUT("/expedition/status/form/:id", a.formExpedition)
@@ -473,6 +474,75 @@ func (a *Application) getAlpinist(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"alpinist": alpinist,
 	})
+}
+
+// deleteAlpinistFromLastExpedition godoc
+// @Summary      deletes an alpinist
+// @Description  deletes an alpinist from expedition
+// @Tags         alpinists
+// @Produce      json
+// @Param        id path uint true "id" alpinist id
+// @Success      204
+// @Failure      400   {object} object{status=string, message=string}
+// @Failure      404   {object} object{status=string, message=string}
+// @Failure      500   {object} object{status=string, message=string}
+// @Router       /alpinist/expedition/{id} [delete]
+func (a *Application) deleteAlpinistFromLastExpedition(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "invalid parameter id",
+		})
+		return
+	}
+
+	alpinist, err := a.repository.GetAlpinistByID(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	value, exists := c.Get("sessionContext")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "must be authorized",
+		})
+		return
+	}
+	sc := value.(ds.SessionContext)
+
+	draft, err := a.repository.GetDraft(sc.UserID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  "no draft",
+				"message": err.Error(),
+			})
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  "fail",
+				"message": err.Error(),
+			})
+			return
+		}
+	}
+
+	draft.Alpinists = []ds.Alpinist{*alpinist}
+	if err = a.repository.DeleteAlpinistFromExpedition(draft); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "fail",
+			"message": "can`t post expedition into db",
+		})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // deleteAlpinist godoc
