@@ -254,10 +254,10 @@ func (r *Repository) UpdateStatus(expedition ds.Expedition) error {
 	return nil
 }
 
-func (r *Repository) GetExpeditionByID(expeditionID int) (*ds.Expedition, error) {
+func (r *Repository) GetExpeditionByID(expeditionID int, userID int) (*ds.Expedition, error) {
 	expedition := &ds.Expedition{}
 
-	err := r.db.Preload("Alpinists").First(expedition, "id = ?", expeditionID).Error
+	err := r.db.Preload("Alpinists").First(expedition, "id = ? and user_id = ?", expeditionID, userID).Error
 	if err != nil {
 		return nil, err
 	}

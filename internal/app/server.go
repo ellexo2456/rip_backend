@@ -1009,8 +1009,26 @@ func (a *Application) getExpedition(c *gin.Context) {
 		return
 	}
 
-	expedition, err := a.repository.GetExpeditionByID(expeditionID)
+	value, exists := c.Get("sessionContext")
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "fail",
+			"message": "must be authorized",
+		})
+		return
+	}
+	sc := value.(ds.SessionContext)
+
+	expedition, err := a.repository.GetExpeditionByID(expeditionID, sc.UserID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status":  "can`t find expedition with such id for the user",
+				"message": err.Error(),
+			})
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status":  "fail",
 			"message": err.Error(),
