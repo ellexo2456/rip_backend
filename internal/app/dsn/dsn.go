@@ -6,7 +6,7 @@ import (
 )
 
 func FromEnv() string {
-	host := os.Getenv("POSTGRES_DB")
+	host := os.Getenv("POSTGRES_HOST")
 	if host == "" {
 		return ""
 	}
