@@ -303,6 +303,17 @@ func (r *Repository) GetByEmail(email string) (ds.User, error) {
 	return u, nil
 }
 
+func (r *Repository) GetUserByID(id int) (ds.User, error) {
+	var u ds.User
+	err := r.db.First(&u, "id = ?", id).Error
+
+	if err != nil {
+		return ds.User{}, err
+	}
+
+	return u, nil
+}
+
 func (r *Repository) AddUser(user ds.User) (int, error) {
 	result := r.db.Create(&user)
 

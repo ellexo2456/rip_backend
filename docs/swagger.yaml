@@ -96,7 +96,7 @@ info:
   title: RIpPeakBack
   version: "1.0"
 paths:
-  /{name}:
+  /:
     get:
       description: returns the page with an alpinists that had been filtered by a
         country

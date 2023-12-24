@@ -321,6 +321,8 @@ func (a *Application) auth(ctx *gin.Context) (bool, error) {
 		return false, ds.ErrUnauthorized
 	}
 
+	ctx.Set("sessionContext", sc)
+
 	return true, ds.ErrAlreadyExists
 }
 
@@ -361,7 +363,7 @@ func checkCredentials(cred ds.Credentials) error {
 // @Success      200  {object} object{country=string, alpinists=[]ds.Alpinist, draft=ds.Expedition}
 // @Failure      500  {object} object{status=string, message=string}
 // @Failure      500  {object} object{status=string, message=string}
-// @Router       /{name} [get]
+// @Router       / [get]
 func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
 	country := c.DefaultQuery("country", "")
 
@@ -387,8 +389,12 @@ func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
 		}
 	}
 
+	_, _ = a.auth(c)
+
 	value, exists := c.Get("sessionContext")
 	var draft ds.Expedition
+	var u ds.User
+
 	if exists {
 		sc := value.(ds.SessionContext)
 
@@ -404,9 +410,23 @@ func (a *Application) filterAlpinistsByCountry(c *gin.Context) {
 				return
 			}
 		}
+
+		u, err = a.repository.GetUserByID(sc.UserID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				u = ds.User{}
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"status":  "fail",
+					"message": err.Error(),
+				})
+				return
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
+		"user":      u,
 		"country":   country,
 		"draft":     draft,
 		"alpinists": *foundAlpinists,

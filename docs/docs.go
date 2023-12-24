@@ -22,6 +22,63 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/": {
+            "get": {
+                "description": "returns the page with an alpinists that had been filtered by a country",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "alpinists"
+                ],
+                "summary": "returns the page with a filtered alpinists",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "country name",
+                        "name": "country",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " alpinists": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/ds.Alpinist"
+                                    }
+                                },
+                                " draft": {
+                                    "$ref": "#/definitions/ds.Expedition"
+                                },
+                                "country": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                " message": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/alpinist": {
             "put": {
                 "description": "modify an alpinist data",
@@ -1117,63 +1174,6 @@ const docTemplate = `{
                                     "type": "string"
                                 },
                                 "status": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                " message": {
-                                    "type": "string"
-                                },
-                                "status": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/{name}": {
-            "get": {
-                "description": "returns the page with an alpinists that had been filtered by a country",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "alpinists"
-                ],
-                "summary": "returns the page with a filtered alpinists",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "country name",
-                        "name": "country",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                " alpinists": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/definitions/ds.Alpinist"
-                                    }
-                                },
-                                " draft": {
-                                    "$ref": "#/definitions/ds.Expedition"
-                                },
-                                "country": {
                                     "type": "string"
                                 }
                             }
