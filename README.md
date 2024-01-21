@@ -7,3 +7,4 @@
 Смежные репозитории:
 * фронтенд (React, RTK, Vite) : https://github.com/ellexo2456/rip_front
 * нативное приложение (Tauri) : https://github.com/ellexo2456/rip_native
+* асинхринный сервис (Django) : https://github.com/ellexo2456/rip_async_archive
